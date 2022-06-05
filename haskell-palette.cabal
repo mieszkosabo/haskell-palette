@@ -45,6 +45,9 @@ executable haskell-palette
     -- other-extensions:
     build-depends:
         base ^>=4.16.1.0,
+        scotty ^>=0.12,
+        wai-extra ^>=3.1.12.1,
+        text ^>=1.2.5.0,
         haskell-palette
 
     hs-source-dirs:   app
