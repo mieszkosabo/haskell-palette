@@ -24,14 +24,20 @@ extra-source-files:
     README.md
 
 library
-    exposed-modules:  MyLib
+    exposed-modules:  ServerLib
 
     -- Modules included in this library but not exported.
     -- other-modules:
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>=4.16.1.0
+    build-depends:    
+        base ^>=4.16.1.0,
+        scotty ^>=0.12,
+        wai-extra ^>=3.1.12.1,
+        text ^>=1.2.5.0,
+        bytestring ^>=0.11.3.1,
+        SHA ^>=1.6.4.4,
     hs-source-dirs:   src
     default-language: Haskell2010
 
