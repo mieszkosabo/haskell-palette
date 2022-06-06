@@ -24,7 +24,7 @@ extra-source-files:
     README.md
 
 library
-    exposed-modules:  ServerLib
+    exposed-modules: ServerLib, Image
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -32,7 +32,8 @@ library
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:    
-        base ^>=4.16.1.0,
+        base >=4 && < 5,
+        JuicyPixels,
         scotty ^>=0.12,
         wai-extra ^>=3.1.12.1,
         text ^>=1.2.5.0,
@@ -50,7 +51,7 @@ executable haskell-palette
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:
-        base ^>=4.16.1.0,
+        base >=4 && < 5,
         haskell-palette
 
     hs-source-dirs:   app
