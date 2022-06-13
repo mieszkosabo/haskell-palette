@@ -34,5 +34,14 @@ dropWhile fn l =
 -- removes "data:image/*;base64," prefix from the string leaving just the actual
 -- base64 part
 imageUrlToPureBase64 : ImageString -> ImageString
-imageUrlToPureBase64 img = String.fromList (dropWhile (\c -> c /= ',') (String.toList img))
+imageUrlToPureBase64 img = String.fromList (dropWhile ((/=) ',') (String.toList img))
 
+const : a -> b -> a
+const x _ = x
+
+algorithmToString : Algorithm -> String
+algorithmToString algorithm = 
+    case algorithm of
+        MedianCut -> "median_cut"
+        Kmeans -> "k_means"
+        KmeansPP -> "k_means_pp"

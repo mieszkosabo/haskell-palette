@@ -6,7 +6,7 @@ import Html.Styled.Events exposing (..)
 import Css exposing (..)
 
 import Http
-import File exposing (File)
+import File
 import File.Select as Select
 import Json.Encode as Encode exposing (..)
 import Json.Decode as Decode exposing (..)
@@ -21,9 +21,6 @@ import Types exposing (..)
 
 endpointUrl : String
 endpointUrl = "http://localhost:3000/upload"
-
-
-
 
 apiRequestEncoder : Algorithm -> ImageString -> Encode.Value
 apiRequestEncoder algorithm image = Encode.object [
@@ -50,7 +47,6 @@ initialState = {
     errorMessage = Nothing
     }
 
--- main functions
 view : State -> Html Msg
 view model =
     styledContainerOutside [] [
@@ -84,8 +80,8 @@ update msg state =
 
 main : Program () State Msg
 main = Browser.element { 
-    init = \_ -> (initialState, Cmd.none),
+    init = const (initialState, Cmd.none),
     view = view >> toUnstyled,
     update = update,
-    subscriptions = \_ -> Sub.none
+    subscriptions = const Sub.none
     }

@@ -7,12 +7,7 @@ type alias Color = String
 type alias ImageString = String
 type Algorithm = MedianCut | Kmeans | KmeansPP
 
-algorithmToString : Algorithm -> String
-algorithmToString algorithm = 
-    case algorithm of
-        MedianCut -> "median_cut"
-        Kmeans -> "k_means"
-        KmeansPP -> "k_means_pp"
+
 
 type alias State = {
     algorithm: Maybe Algorithm,
