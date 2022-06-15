@@ -17,8 +17,6 @@ import Components exposing (..)
 import Utils exposing (..)
 import Types exposing (..)
 
--- TODO: add displaying the palette
-
 endpointUrl : String
 endpointUrl = "http://localhost:3000/upload"
 
@@ -47,17 +45,28 @@ initialState = {
     errorMessage = Nothing
     }
 
+imageView : Maybe ImageString -> Html a
+imageView image = case image of
+                        Nothing -> emptyNode
+                        Just content -> styledImg [ src content ] []
+
+samplePalette : List Types.Color
+samplePalette = [
+                "#8c2703",
+                "#973c1c",
+                "#a35235",
+                "#ae674e",
+                "#ba7d67"
+                ]
+
 view : State -> Html Msg
 view model =
     styledContainerOutside [] [
         styledContainerInside [] [
             styledH1 [] [ text "Haskell Palette Demo" ],
-            case model.image of
-                Nothing -> uploadImageButton [ onClick ChooseFileRequest ] [ text "upload image" ]
-                Just content -> div [] 
-                    [
-                        styledImg [ src content ] []
-                    ]
+            uploadImageButton [ onClick ChooseFileRequest ] [ text "upload image" ],
+            colorsPalette samplePalette,
+            imageView model.image            
         ]
     ]
 

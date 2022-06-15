@@ -4,6 +4,7 @@ import Html.Styled exposing (..)
 import Html.Styled.Attributes exposing (..)
 import Html.Styled.Events exposing (..)
 import Css exposing (..)
+import Types exposing (..)
 
 type alias StyledComponent a = List (Attribute a) -> List (Html a) -> Html a
 
@@ -27,7 +28,8 @@ styledContainerInside = styled Html.Styled.div [
 
 styledImg : StyledComponent a
 styledImg = styled Html.Styled.img [
-    Css.maxHeight (Css.px 320)
+    Css.maxHeight (Css.px 320),
+    Css.padding (Css.px 64)
     ]
 
 uploadImageButton : StyledComponent a
@@ -38,3 +40,33 @@ uploadImageButton = styled Html.Styled.button [
     color (hex "#8C2703"),
     Css.fontFamily Css.monospace
     ]
+
+emptyNode : Html msg
+emptyNode = Html.Styled.text ""
+
+pickedColor : Types.Color -> Html a
+pickedColor c = styled Html.Styled.div [
+    Css.width (Css.pt 64),
+    Css.height (Css.pt 64),
+    Css.backgroundColor (hex c),
+    Css.margin (Css.pt 4)
+    ] [] [ emptyNode ]
+
+describedColor : Types.Color -> Html a
+describedColor c = styled Html.Styled.div [
+    Css.paddingBottom (Css.pt 4),
+    Css.textTransform Css.uppercase,
+    Css.textAlign Css.center
+    ] [] [ 
+        pickedColor c,
+        Html.Styled.text c
+        ]
+
+colorsPalette : List Types.Color -> Html a
+colorsPalette colors = styled Html.Styled.div ([
+    Css.width (Css.pct 100),
+    Css.displayFlex,
+    Css.flexDirection Css.row,
+    Css.flexWrap Css.wrap,
+    Css.justifyContent Css.center
+    ]) [] (List.map describedColor colors)
