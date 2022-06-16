@@ -12,7 +12,7 @@ import qualified Data.Digest.Pure.SHA as Dps
 import Data.Monoid (mconcat)
 
 htmlSourceDir :: String
-htmlSourceDir = "/workspaces/haskell-palette/"
+htmlSourceDir = "/haskell-palette/"
 
 tempDataDir :: String
 tempDataDir = "/tmp/"
