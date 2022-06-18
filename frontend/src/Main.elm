@@ -56,8 +56,8 @@ view model =
         styledContainerInside [] [
             styledH1 [] [ text "Haskell Palette Demo" ],
             uploadImageButton [ onClick ChooseFileRequest ] [ text "upload image" ],
-            colorsPalette model.colors,
-            imageView model.image            
+            imageView model.image,
+            colorsPalette model.colors
         ]
     ]
 
