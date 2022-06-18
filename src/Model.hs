@@ -11,7 +11,7 @@ data ImageRequest = ImageRequest {
  } deriving (Show, Generic)
 
 data ColorsResponse = ColorsResponse { 
-  colors :: [Color] 
+  colors :: [Color]
   } deriving (Show, Generic)
 
 instance ToJSON ColorsResponse
@@ -19,3 +19,7 @@ instance ToJSON ColorsResponse
 instance FromJSON ImageRequest
 
 type Color = String
+
+type FileName = String
+
+type ErrorMessage = String
