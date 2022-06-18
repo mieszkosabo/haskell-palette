@@ -1,6 +1,6 @@
 module Main where
 
-import qualified ServerLib (server)
+import qualified Server (server)
 
 main :: IO ()
-main = ServerLib.server
+main = Server.server
