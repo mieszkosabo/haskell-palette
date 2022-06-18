@@ -50,22 +50,13 @@ imageView image = case image of
                         Nothing -> emptyNode
                         Just content -> styledImg [ src content ] []
 
-samplePalette : List Types.Color
-samplePalette = [
-                "#8c2703",
-                "#973c1c",
-                "#a35235",
-                "#ae674e",
-                "#ba7d67"
-                ]
-
 view : State -> Html Msg
 view model =
     styledContainerOutside [] [
         styledContainerInside [] [
             styledH1 [] [ text "Haskell Palette Demo" ],
             uploadImageButton [ onClick ChooseFileRequest ] [ text "upload image" ],
-            colorsPalette samplePalette,
+            colorsPalette model.colors,
             imageView model.image            
         ]
     ]

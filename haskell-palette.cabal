@@ -21,7 +21,7 @@ maintainer:         mieszko.mac@gmail.com
 -- category:
 
 library
-    exposed-modules: ServerLib, Image, CommonTypes
+    exposed-modules: Server, Image, CommonTypes, Model
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -32,6 +32,9 @@ library
         base >=4 && < 5,
         repa >= 3.4.1.5,
         JuicyPixels ^>= 3.3.7,
+        repa ^>= 3.4.1.5,
+        filepath ^>= 1.4.2.2,
+        aeson ^>= 2.0.3.0,
         scotty ^>=0.12,
         wai-extra ^>=3.1.12.1,
         text ^>=1.2.5.0,
