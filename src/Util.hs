@@ -3,8 +3,8 @@ module Util where
 import qualified Data.ByteString as B
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
-import Text.Read ( readMaybe )
-import Data.Maybe ( fromMaybe )
+import Text.Read (readMaybe)
+import Data.Maybe (fromMaybe)
 import qualified Codec.Picture.Repa as CR
 import qualified Data.Array.Repa as R
 import Data.Array.Repa ((:.), (:.)(..), Z(..))

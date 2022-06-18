@@ -9,7 +9,6 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Char8 as BLU
 import qualified Web.Scotty as Scot
 import qualified Control.Monad.IO.Class as Cm
-import qualified Data.Digest.Pure.SHA as Dps
 import qualified Model as M
 import qualified Codec.Picture.Repa as CR
 import qualified Data.Array.Repa as R
