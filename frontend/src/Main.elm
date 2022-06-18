@@ -27,7 +27,7 @@ apiRequestEncoder algorithm image = Encode.object [
     ]
 
 paletteDecoder : Decode.Decoder (List Types.Color)
-paletteDecoder = Decode.list Decode.string
+paletteDecoder = Decode.field "colors" (Decode.list Decode.string)
 
 
 getPaletteFromImage : Algorithm -> ImageString -> Cmd Msg
@@ -56,8 +56,8 @@ view model =
         styledContainerInside [] [
             styledH1 [] [ text "Haskell Palette Demo" ],
             uploadImageButton [ onClick ChooseFileRequest ] [ text "upload image" ],
-            colorsPalette model.colors,
-            imageView model.image            
+            imageView model.image,
+            colorsPalette model.colors
         ]
     ]
 
