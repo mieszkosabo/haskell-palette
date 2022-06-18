@@ -41,7 +41,6 @@ library
         repa >= 3.4.1.5,
         JuicyPixels ^>= 3.3.7,
         JuicyPixels-repa ^>= 0.7.1.0,
-        bytestring ^>= 0.11.3.1,
         filepath ^>= 1.4.2.2,
         aeson ^>= 2.0.3.0,
         scotty ^>=0.12,
