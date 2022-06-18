@@ -3,6 +3,8 @@ module Util where
 import qualified Data.ByteString as B
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
+import Text.Read ( readMaybe )
+import Data.Maybe ( fromMaybe )
 import qualified Data.Array.Repa as R
 import Debug.Trace (trace)
 import GHC.Word (Word8)
@@ -17,9 +19,14 @@ strToBStr = encodeUtf8 . T.pack
 envVarString :: String -> String -> IO String 
 envVarString name def = do
     value <- lookupEnv name
-    case value of
-        Just v -> return v
-        Nothing -> return def
+    return $ fromMaybe def value
+
+
+envVarInt :: String -> Int -> IO Int
+envVarInt name def = do
+    value <- lookupEnv name
+    return $ fromMaybe def (value >>= readMaybe)
+
 
 -- having image rgb representation convert to 
 -- to counts of pixels type on the image

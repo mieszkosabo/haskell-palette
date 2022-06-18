@@ -14,12 +14,15 @@ import qualified Model as M
 import qualified Codec.Picture.Repa as CR
 import qualified Data.Array.Repa as R
 import qualified Data.ByteString.Base64 as B64
-import Util (strToBStr, imgHist, envVarString)
+import Util (strToBStr, imgHist, envVarString, envVarInt)
 import Data.Monoid (mconcat)
 import GHC.Word (Word8)
 
 htmlSourceDir :: IO String
 htmlSourceDir = envVarString "SOURCE_PATH" "/workspaces/haskell-palette/frontend/"
+
+port :: IO Int
+port = envVarInt "PORT" 3000
 
 samplePalette :: [String]
 samplePalette = [
@@ -46,13 +49,14 @@ generatePalette request = do
 
 server :: IO ()
 server = do
-  sourceDir <- htmlSourceDir
+  htmlSourceDir' <- htmlSourceDir
+  port' <- port
 
-  Scot.scotty 3000 $ do
+  Scot.scotty port' $ do
     Scot.middleware logStdoutDev
 
     Scot.get "/" $ do
-      Scot.file $ sourceDir ++ "index.html"
+      Scot.file $ htmlSourceDir' ++ "index.html"
 
     Scot.post "/upload" $ do
       request <- Scot.jsonData :: Scot.ActionM M.ImageRequest
