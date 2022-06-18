@@ -27,7 +27,7 @@ apiRequestEncoder algorithm image = Encode.object [
     ]
 
 paletteDecoder : Decode.Decoder (List Types.Color)
-paletteDecoder = Decode.list Decode.string
+paletteDecoder = Decode.field "colors" (Decode.list Decode.string)
 
 
 getPaletteFromImage : Algorithm -> ImageString -> Cmd Msg

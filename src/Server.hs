@@ -13,7 +13,7 @@ import qualified Model as M
 import Data.Monoid (mconcat)
 
 htmlSourceDir :: String
-htmlSourceDir = "/workspaces/haskell-palette/frontend"
+htmlSourceDir = "/workspaces/haskell-palette/frontend/"
 
 samplePalette :: [String]
 samplePalette = [
