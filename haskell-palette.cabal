@@ -20,7 +20,16 @@ maintainer:         mieszko.mac@gmail.com
 -- copyright:
 -- category:
 
+common shared-properties
+    default-language: Haskell2010
+    build-depends:
+        base >=4 && < 5,
+    ghc-options:
+        -O2
+        -threaded
+
 library
+    import: shared-properties
     exposed-modules: Server, Image, CommonTypes, Model
 
     -- Modules included in this library but not exported.
@@ -28,8 +37,7 @@ library
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    
-        base >=4 && < 5,
+    build-depends:
         repa >= 3.4.1.5,
         JuicyPixels ^>= 3.3.7,
         filepath ^>= 1.4.2.2,
@@ -41,9 +49,9 @@ library
         SHA ^>=1.6.4.4,
         either ^>= 5.0.2
     hs-source-dirs:   src
-    default-language: Haskell2010
 
 executable haskell-palette
+    import: shared-properties
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
@@ -52,8 +60,6 @@ executable haskell-palette
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:
-        base >=4 && < 5,
         haskell-palette
 
     hs-source-dirs:   app
-    default-language: Haskell2010
