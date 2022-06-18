@@ -41,5 +41,6 @@ WORKDIR /haskell-palette
 COPY --from=build-haskell /build/artifacts/haskell-palette /usr/bin/
 COPY --from=build-assets /build/index.html .
 EXPOSE 3000/tcp
+ENV SOURCE_PATH=/haskell-palette/
 
 ENTRYPOINT ["/usr/bin/haskell-palette"]
