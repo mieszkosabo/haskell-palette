@@ -39,6 +39,7 @@ getPaletteFromImage algorithm image = Http.post {
 
 initialState : State
 initialState = {
+    state = Initial,
     algorithm = Nothing,
     image = Nothing,
     colors = [],
@@ -52,13 +53,28 @@ imageView image = case image of
 
 view : State -> Html Msg
 view model =
+    
     styledContainerOutside [] [
-        styledContainerInside [] [
-            styledH1 [] [ text "Haskell Palette Demo" ],
-            uploadImageButton [ onClick ChooseFileRequest ] [ text "upload image" ],
-            imageView model.image,
-            colorsPalette model.colors
-        ]
+        styledContainerInside [] ([
+            styledH1 [] [ text "Haskell Palette Demo" ]] ++
+            case model.state of
+                Initial -> ([
+                    uploadImageButton [ onClick ChooseFileRequest ] [ text "Upload image!" ]
+                    ])
+                Loading -> ([
+                    colorsSkeleton,
+                    skeletonAnimation
+                    ])
+                ShowingPalette -> ([
+                    imageView model.image,
+                    colorsPalette model.colors,
+                    uploadImageButton [ onClick ChooseFileRequest ] [ text "Try again!" ]
+                    ])
+                Error -> ([
+                    Html.Styled.h2 [] [ text "Unexpected error occured!"],
+                    uploadImageButton [ onClick ChooseFileRequest ] [ text "Try again!" ]
+                    ])
+            )
     ]
 
 update : Msg -> State -> (State, Cmd Msg)
@@ -67,14 +83,16 @@ update msg state =
         ChooseFileRequest -> (state, Select.file ["image/jpeg", "image/png"] FileSelected)
         FileSelected file -> (state, Task.perform FileLoaded (File.toUrl file))
         FileLoaded content -> (
-            { state | image = Just content },
+            { state | image = Just content, state = Loading },
             getPaletteFromImage 
                 (Maybe.withDefault KmeansPP state.algorithm) 
                 (imageUrlToPureBase64 content)
             )
-        GotPalette (Ok palette) -> ({ state | colors = palette }, Cmd.none)
+        GotPalette (Ok palette) -> (
+            { state | colors = palette, state = ShowingPalette }, Cmd.none
+            )
         GotPalette (Err error) -> (
-            { state | errorMessage = Just (buildErrorMessage error) },
+            { state | errorMessage = Just (buildErrorMessage error), state = Error },
             Cmd.none
             )
 
