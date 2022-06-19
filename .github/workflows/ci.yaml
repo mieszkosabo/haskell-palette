@@ -40,10 +40,7 @@ jobs:
           git clone https://heroku:${{ secrets.HEROKU_API_KEY }}@git.heroku.com/haskell-palette.git
           cd haskell-palette
           find . -maxdepth 1 ! -path './.git' ! -path '.' -exec rm -rf {} +
-          git config --global user.email "${{ secrets.HEROKU_DEPLOY_EMAIL }}"
-          git config --global user.name "${{ secrets.HEROKU_DEPLOY_NAME }}"
-          git commit . -m "Clean old version"
-          cp -r ../* ./
+          cp -r ../deploy/* ./
           git add .
-          git commit . -m "Deploy new version from from ${{ github.ref }}"
+          git commit . -m "Deploy new version from ${{ github.ref }}"
           git push
