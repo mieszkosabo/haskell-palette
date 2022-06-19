@@ -18,7 +18,7 @@ import Utils exposing (..)
 import Types exposing (..)
 
 endpointUrl : String
-endpointUrl = "http://localhost:3000/upload"
+endpointUrl = "/upload"
 
 apiRequestEncoder : Algorithm -> ImageString -> Encode.Value
 apiRequestEncoder algorithm image = Encode.object [
