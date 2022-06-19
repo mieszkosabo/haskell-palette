@@ -30,28 +30,30 @@ envVarInt name def = do
     value <- lookupEnv name
     return $ fromMaybe def (value >>= readMaybe)
 
--- | A histogram is a one dimensional array where each element
--- indicates how many pixels held the value represented by the element's
--- index.
-type Histogram = R.Array R.D R.DIM1 Word8
+type Histogram = R.Array R.D R.DIM3 Word8
 
--- | Compute the RGB histograms of the image based on JuicyPixels-repa
--- implementation.
-histograms :: CR.Img a -> (Histogram, Histogram, Histogram)
-histograms (CR.Img arr) =
-    let (Z :. nrRow :. nrCol :. _) = R.extent arr
-        zero = R.fromFunction (Z :. 256) (\_ -> 0 :: Word8)
+histograms :: CR.Img a -> Histogram
+histograms (CR.Img arr) = hist
+  where
+    (Z :. nrRow :. nrCol :. _) = R.extent arr
 
-        incElem :: Word8 -> R.Array R.D R.DIM1 Word8 -> R.Array R.D R.DIM1 Word8
-        incElem idx x = RU.unsafeTraverse x id (\l i -> l i + if i == (Z :. fromIntegral idx) then 1 else 0)
+    zero = R.fromFunction (Z :. 256 :. 256 :. 256) (\_ -> 0 :: Word8)
 
-    in Prelude.foldl (\(hR, hG, hB) (row,col) ->
-             let r = R.unsafeIndex arr (Z :. row :. col :. 0)
-                 g = R.unsafeIndex arr (Z :. row :. col :. 1)
-                 b = R.unsafeIndex arr (Z :. row :. col :. 2)
-             in (incElem r hR, incElem g hG, incElem b hB))
-          (zero, zero, zero)
-          [(row, col) | row <- [0..nrRow - 1], col <- [0..nrCol - 1]]
+    imgMatrix = [(row, col) | row <- [0..nrRow - 1], col <- [0..nrCol - 1]]
+
+    incElem :: Int -> Int -> Int -> Histogram -> Histogram
+    incElem r g b x = RU.unsafeTraverse x id (\l i -> l i + if i == (Z :. r :. g :. b) then 1 else 0)
+
+    valueAt :: (Int, Int) -> Int -> Int
+    valueAt (row, col) rgb = fromIntegral $ R.unsafeIndex arr (Z :. row :. col :. rgb)
+
+    hist = Prelude.foldl (\hist pos ->
+                         let r = valueAt pos 0
+                             g = valueAt pos 1
+                             b = valueAt pos 2
+                         in (incElem r g b hist))
+                         zero imgMatrix
+           
 
 -- having image rgb representation convert to 
 -- to counts of pixels type on the image
