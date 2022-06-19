@@ -37,5 +37,3 @@ RUN chmod +x llvm.sh
 RUN ./llvm.sh 11
 RUN ln /usr/bin/llc-11 /usr/bin/llc
 RUN ln /usr/bin/opt-11 /usr/bin/opt
-
-RUN cabal update
