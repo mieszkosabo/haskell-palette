@@ -3,7 +3,7 @@ all: image
 SHELL :=/bin/bash -euEo pipefail -O inherit_errexit
 
 IMAGE_TAG ?= latest
-IMAGE_REF ?= docker.io/rzetelskik/haskell-palette:$(IMAGE_TAG)
+IMAGE_REF ?= docker.io/zpf2022/haskell-palette:$(IMAGE_TAG)
 INSTALL_DIR ?= $(shell pwd)
 
 ELM_BIN ?= $(shell which elm)
