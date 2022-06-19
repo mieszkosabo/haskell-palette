@@ -3,25 +3,17 @@
 
 module Server (server) where
 
-import Network.Wai.Middleware.RequestLogger
 import qualified Data.Text.Lazy as TL
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Lazy.Char8 as BLU
-import qualified Web.Scotty as Scot
-import qualified Control.Monad.IO.Class as Cm
 import qualified Model as M
-import qualified Codec.Picture.Repa as CR
-import qualified Data.Array.Repa as R
-import qualified Data.ByteString.Base64 as B64
-import Util (strToBStr, imgHist, envVarString, envVarInt)
-import Data.Monoid (mconcat)
-import GHC.Word (Word8)
+import qualified Util as U
+import qualified Web.Scotty as Scot
+import Network.Wai.Middleware.RequestLogger
 
 htmlSourceDir :: IO String
-htmlSourceDir = envVarString "SOURCE_PATH" "/workspaces/haskell-palette/frontend/"
+htmlSourceDir = U.envVarString "SOURCE_PATH" "/workspaces/haskell-palette/frontend/"
 
 port :: IO Int
-port = envVarInt "PORT" 3000
+port = U.envVarInt "PORT" 3000
 
 samplePalette :: [String]
 samplePalette = [
@@ -32,18 +24,11 @@ samplePalette = [
                 "#ba7d67"
                 ]
 
-decodeImage :: String -> Either String (R.Array R.D R.DIM3 Word8)
-decodeImage imgBase64 = do
-  let bimg = strToBStr imgBase64
-  dimg <- B64.decode bimg
-  rgb <- CR.decodeImageRGB dimg
-  return $ CR.imgData rgb
-
 generatePalette :: M.ImageRequest -> Either String M.ColorsResponse
 generatePalette request = do 
   let img = M.image request
-  pixels <- decodeImage img
-  let !hist = imgHist pixels
+  pixels <- U.decodeImage img
+  let !hist = U.histogram pixels
   return M.ColorsResponse { M.colors = samplePalette }
 
 server :: IO ()
