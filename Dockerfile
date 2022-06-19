@@ -14,7 +14,7 @@ RUN ln /usr/bin/opt-11 /usr/bin/opt
 
 WORKDIR /build
 
-copy Makefile /build/Makefile
+COPY Makefile /build/Makefile
 COPY docker.cabal.config /build/cabal.config
 ENV CABAL_CONFIG /build/cabal.config
 
