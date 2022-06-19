@@ -8,6 +8,7 @@ import qualified Model as M
 import qualified Util as U
 import qualified Image as I
 import qualified Web.Scotty as Scot
+import qualified Data.Array.Repa as R
 import Network.Wai.Middleware.RequestLogger
 
 htmlSourceDir :: IO String
@@ -30,6 +31,7 @@ generatePalette request = do
   let img = M.image request
   pixels <- I.decodeImage img
   let !hist = I.histogram pixels
+  !histSum <- U.debug (R.sumAllP hist) "histSum"
   return M.ColorsResponse { M.colors = samplePalette }
 
 server :: IO ()
