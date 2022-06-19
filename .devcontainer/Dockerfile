@@ -24,18 +24,18 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 RUN curl -L -o elm.gz https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz
 RUN gunzip elm.gz
 RUN chmod +x elm
-RUN sudo mv elm /usr/local/bin/
+RUN mv elm /usr/local/bin/
 
 # install llvm
-RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends lsb-release wget software-properties-common && \
-    apt-get clean all && \
-    rm -rf /var/lib/apt/lists/* && \
-    wget https://apt.llvm.org/llvm.sh && \
-    chmod +x llvm.sh && \
-    sudo ./llvm.sh 11 && \
-    sudo ln /usr/bin/llc-11 /usr/bin/llc && \
-    sudo ln /usr/bin/opt-11 /usr/bin/opt
+RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends lsb-release wget software-properties-common
+RUN apt-get clean all
+RUN rm -rf /var/lib/apt/lists/*
+RUN wget https://apt.llvm.org/llvm.sh
+RUN chmod +x llvm.sh
+RUN ./llvm.sh 11
+RUN ln /usr/bin/llc-11 /usr/bin/llc
+RUN ln /usr/bin/opt-11 /usr/bin/opt
 
 RUN cabal update

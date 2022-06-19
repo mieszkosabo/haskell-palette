@@ -27,7 +27,8 @@ common shared-properties
         -fsimplifier-phases=3
         -fno-liberate-case
         -funfolding-use-threshold100
-        -fllvm -optlo-O3
+        -fllvm
+        -optlo-O3
 
 library
     import: shared-properties
@@ -68,5 +69,6 @@ executable haskell-palette
     ghc-options:
         -rtsopts
         -threaded
+        -with-rtsopts=-N
 
     hs-source-dirs:   app
