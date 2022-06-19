@@ -28,10 +28,14 @@ type FileName = String
 
 type ErrorMessage = String
 
--- 256x256x256 where matrix value is represents count
+-- 256x256x256 where matrix value represents count
 -- of pixels of given RGB color
 type Histogram = R.Array R.D R.DIM3 Word8
 
 -- HEIGHTxWIDTHx3 where matrix values are 
 -- level values from 0..255
 type RawImage = R.Array R.D R.DIM3 Word8
+
+-- (HEIGHT*WIDTH)x3 where matrix values are 
+-- level values from 0..255
+type PixelSpace = R.Array R.D R.DIM2 Word8
