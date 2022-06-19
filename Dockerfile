@@ -8,7 +8,7 @@ ENV CABAL_CONFIG /build/cabal.config
 RUN cabal v2-update
 
 COPY haskell-palette.cabal /build/
-RUN cabal v2-build -v1 -j4 --dependencies-only all
+RUN cabal v2-build -v1 --dependencies-only all
 
 COPY /src /build/src
 COPY /app /build/app
