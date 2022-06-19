@@ -22,5 +22,9 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 
+# frontend
 index.html
 elm-stuff
+
+# binary
+haskell-palette

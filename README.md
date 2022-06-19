@@ -11,7 +11,7 @@
 
 ### building the demo frontend
 
-Run `./build_demo_frontend.sh`. It will create a index.html in the root directory. By default the frontend is trying to reach the API on http://localhost:3000.
+Run `make build-frontend`. It will create a index.html in the root directory. By default the frontend is trying to reach the API on http://localhost:3000.
 
 ### API
 
