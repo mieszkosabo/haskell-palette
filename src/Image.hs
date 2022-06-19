@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Image where
 
 import qualified Codec.Picture.Repa as CR
@@ -10,10 +12,13 @@ import qualified Data.List as L
 import qualified Color as C
 
 import Data.Array.Repa ((:.), (:.)(..), Z(..))
+import Data.Array.Repa.Index (ix3)
 import GHC.Word (Word8)
 import Control.Monad.State
 import qualified Data.Map as Map
+import Data.Function (on)
 
+targetImageSize = 256
 paletteSize = 6
 histogramGridSize = 3
 
@@ -51,4 +56,38 @@ decodeImage imgBase64 = do
   let bimg = U.strToBStr imgBase64
   dimg <- B64.decode bimg
   rgb <- CR.decodeImageRGB dimg
-  return $ CR.imgData rgb
+  let raw = CR.imgData rgb 
+  resized <- resizeNNSafeToScale targetImageSize raw
+  return resized
+
+resizeNNSafeToScale :: Int -> M.RawImage -> Either String M.RawImage
+resizeNNSafeToScale nh img = do
+  let (Z :. h :. w :. _) = R.extent img
+  if (h > nh) 
+    then do
+      let nw = floor ((nh `divf` h) * fromIntegral w) :: Int
+      resizeNNSafe nh nw img
+    else 
+      return img
+
+resizeNNSafe :: Int -> Int -> M.RawImage -> Either String M.RawImage
+resizeNNSafe nh nw img = do
+  when (nh <= 0 || nw <= 0) (Left "invalid size")
+  return $ resizeNN nh nw img
+
+resizeNN :: Int -> Int -> M.RawImage -> M.RawImage
+resizeNN nh nw img = R.traverse img (\_ -> ix3 nh nw z) idxf
+  where
+    (Z :. h :. w :. z) = R.extent img
+
+    y_ratio = h `divf` nh
+    x_ratio = w `divf` nw
+
+    idxf :: (R.DIM3 -> Word8) -> R.DIM3 -> Word8
+    idxf f (Z :. y :. x :. z) = f (ix3 py px z)
+      where
+        py = floor ((fromIntegral y) * y_ratio) :: Int
+        px = floor ((fromIntegral x) * x_ratio) :: Int
+
+divf :: (Fractional c, Integral a) => a -> a -> c
+divf = (/) `on` fromIntegral
