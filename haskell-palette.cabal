@@ -30,7 +30,7 @@ common shared-properties
 
 library
     import: shared-properties
-    exposed-modules: Server, Model, Util, Image
+    exposed-modules: Server, Model, Util, Image, Color
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -47,7 +47,9 @@ library
         text ^>=1.2.5.0,
         bytestring ^>= 0.11.3.1,
         base64-bytestring ^>= 1.2.1.0,
-        either ^>= 5.0.2
+        either ^>= 5.0.2,
+        containers ^>= 0.6.5.1,
+        mtl ^>= 2.2.2
     hs-source-dirs:   src
 
 executable haskell-palette

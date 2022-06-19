@@ -30,8 +30,8 @@ generatePalette :: M.ImageRequest -> Either String M.ColorsResponse
 generatePalette request = do 
   let img = M.image request
   pixels <- I.decodeImage img
-  let !hist = I.histogram pixels
-  return M.ColorsResponse { M.colors = samplePalette }
+  let hist = I.histogram pixels
+  return M.ColorsResponse { M.colors = hist }
 
 server :: IO ()
 server = do

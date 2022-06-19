@@ -28,3 +28,10 @@ envVarInt :: String -> Int -> IO Int
 envVarInt name def = do
     value <- lookupEnv name
     return $ fromMaybe def (value >>= readMaybe)
+
+listToTuple3 :: [a] -> (a, a, a)
+listToTuple3 (a:b:c:rest) = (a, b, c)
+listToTuple3 _ = error "Argument list must have at least 3 elements"
+
+tupleToList3 :: (a, a, a) -> [a]
+tupleToList3 (a, b, c) = [a, b, c]
