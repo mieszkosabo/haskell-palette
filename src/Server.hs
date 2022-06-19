@@ -6,6 +6,7 @@ module Server (server) where
 import qualified Data.Text.Lazy as TL
 import qualified Model as M
 import qualified Util as U
+import qualified Image as I
 import qualified Web.Scotty as Scot
 import Network.Wai.Middleware.RequestLogger
 
@@ -27,8 +28,8 @@ samplePalette = [
 generatePalette :: M.ImageRequest -> Either String M.ColorsResponse
 generatePalette request = do 
   let img = M.image request
-  pixels <- U.decodeImage img
-  let !hist = U.histogram pixels
+  pixels <- I.decodeImage img
+  let !hist = I.histogram pixels
   return M.ColorsResponse { M.colors = samplePalette }
 
 server :: IO ()

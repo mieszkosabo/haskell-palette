@@ -30,7 +30,7 @@ common shared-properties
 
 library
     import: shared-properties
-    exposed-modules: Server, Model, Util
+    exposed-modules: Server, Model, Util, Image
 
     -- Modules included in this library but not exported.
     -- other-modules:
