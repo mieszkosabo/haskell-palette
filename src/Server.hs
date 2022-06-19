@@ -31,7 +31,6 @@ generatePalette request = do
   let img = M.image request
   pixels <- I.decodeImage img
   let !hist = I.histogram pixels
-  !histSum <- U.debug (R.sumAllP hist) "histSum"
   return M.ColorsResponse { M.colors = samplePalette }
 
 server :: IO ()
