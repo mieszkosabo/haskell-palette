@@ -12,7 +12,7 @@ data ImageRequest = ImageRequest {
   image :: String
 } deriving (Show, Generic)
 
-data ColorsResponse = ColorsResponse { 
+newtype ColorsResponse = ColorsResponse { 
   colors :: [Color]
 } deriving (Show, Generic)
 
@@ -21,6 +21,8 @@ instance ToJSON ColorsResponse
 instance FromJSON ImageRequest
 
 type Color = String
+
+type Palette = [Color]
 
 type FileName = String
 
