@@ -1,11 +1,12 @@
 FROM docker.io/library/haskell:9 AS build-haskell
 
-RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-RUN apt-get update
-RUN apt-get install -y --no-install-recommends lsb-release wget software-properties-common
-RUN apt-get clean all
-RUN rm -rf /var/lib/apt/lists/*
-RUN wget https://apt.llvm.org/llvm.sh
+RUN wget -nv -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends lsb-release wget software-properties-common && \
+    apt-get clean all && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN wget -nv https://apt.llvm.org/llvm.sh
 RUN chmod +x llvm.sh
 RUN ./llvm.sh 11
 RUN ln /usr/bin/llc-11 /usr/bin/llc
@@ -13,25 +14,26 @@ RUN ln /usr/bin/opt-11 /usr/bin/opt
 
 WORKDIR /build
 
+copy Makefile /build/Makefile
 COPY docker.cabal.config /build/cabal.config
 ENV CABAL_CONFIG /build/cabal.config
 
-RUN cabal v2-update
+RUN make cabal-update
 
 COPY haskell-palette.cabal /build/
-RUN cabal v2-build -v1 --dependencies-only all
+RUN make build-dependencies
 
 COPY /src /build/src
 COPY /app /build/app
 RUN mkdir /build/artifacts
-RUN cabal v2-install -v1 --installdir='/build/artifacts'
+RUN INSTALL_DIR='/build/artifacts' make install
 
 FROM docker.io/library/ubuntu:20.04 AS build-assets
 
 SHELL ["/usr/bin/bash", "-euExo", "pipefail", "-O", "inherit_errexit", "-c"]
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates && \
+    apt-get install -y --no-install-recommends make curl ca-certificates && \
     apt-get clean all && \
     rm -rf /var/lib/apt/lists/*
 
@@ -43,7 +45,7 @@ RUN ln ./elm /usr/bin/elm
 RUN chmod +x /usr/bin/elm
 
 COPY /frontend /build
-RUN /usr/bin/elm make --optimize ./src/Main.elm
+RUN ELM=/usr/bin/elm make build
 
 FROM docker.io/library/ubuntu:20.04
 
