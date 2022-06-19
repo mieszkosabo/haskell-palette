@@ -16,4 +16,8 @@ avarageColor colors = U.listToTuple3 squared
 
 rgbToHex :: RGB -> String
 rgbToHex (r, g, b) = '#' : concatMap convertToPaddedHex [r, g, b]
-  where convertToPaddedHex x = let hex = showHex x "" in if length hex == 1 then '0' : hex else hex
+  where convertToPaddedHex x 
+          = let hex = showHex x "" in 
+            if length hex == 1 
+              then '0' : hex 
+              else hex
