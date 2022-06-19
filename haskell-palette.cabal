@@ -27,7 +27,6 @@ common shared-properties
         -fsimplifier-phases=3
         -fno-liberate-case
         -funfolding-use-threshold100
-        -funfolding-keeness-factor100
         -fllvm -optlo-O3
 
 library
