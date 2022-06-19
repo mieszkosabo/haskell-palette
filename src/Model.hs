@@ -10,11 +10,11 @@ import GHC.Word (Word8)
 data ImageRequest = ImageRequest { 
   algorithm :: String, 
   image :: String
- } deriving (Show, Generic)
+} deriving (Show, Generic)
 
 data ColorsResponse = ColorsResponse { 
   colors :: [Color]
-  } deriving (Show, Generic)
+} deriving (Show, Generic)
 
 instance ToJSON ColorsResponse
 
