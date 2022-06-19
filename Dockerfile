@@ -54,4 +54,4 @@ COPY --from=build-assets /build/index.html .
 EXPOSE 3000/tcp
 ENV SOURCE_PATH=/haskell-palette/
 
-ENTRYPOINT ["/usr/bin/haskell-palette +RTS -N"]
+ENTRYPOINT ["/usr/bin/haskell-palette", "+RTS", "-N"]
