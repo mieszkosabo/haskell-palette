@@ -1,5 +1,16 @@
 FROM docker.io/library/haskell:9 AS build-haskell
 
+RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends lsb-release wget software-properties-common && \
+    apt-get clean all && \
+    rm -rf /var/lib/apt/lists/* && \
+    wget https://apt.llvm.org/llvm.sh && \
+    chmod +x llvm.sh && \
+    ./llvm.sh 11 && \
+    ln /usr/bin/llc-11 /usr/bin/llc && \
+    ln /usr/bin/opt-11 /usr/bin/opt
+
 WORKDIR /build
 
 COPY docker.cabal.config /build/cabal.config
@@ -43,4 +54,4 @@ COPY --from=build-assets /build/index.html .
 EXPOSE 3000/tcp
 ENV SOURCE_PATH=/haskell-palette/
 
-ENTRYPOINT ["/usr/bin/haskell-palette"]
+ENTRYPOINT ["/usr/bin/haskell-palette +RTS -N"]
