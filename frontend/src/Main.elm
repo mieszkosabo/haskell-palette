@@ -76,7 +76,7 @@ update msg state =
         case state of 
             NoImage algorithm ->
                 case msg of
-                    ChooseFileRequest -> (state, Select.file ["image/jpeg", "image/png"] FileSelected)
+                    ChooseFileRequest -> (state, Select.file ["image/jpeg", "image/png", "image/bitmap", "image/gif", "image/tiff"] FileSelected)
                     FileSelected file -> (state, Task.perform FileLoaded (File.toUrl file))
                     FileLoaded image -> (
                         Loading algorithm image,

@@ -137,7 +137,9 @@ radio value isChecked msg =
     ] []
     [
         styled Html.Styled.input 
-        [ Css.margin (Css.px 6), Css.cursor (Css.pointer) ]
+        [ Css.margin (Css.px 6), 
+          Css.cursor (Css.pointer) 
+        ]
         [ 
             type_ "radio", 
             name "algorithm", 
@@ -156,7 +158,10 @@ algorithmPicker algorithm  = styled Html.Styled.div [
     Css.alignItems (Css.center),
     Css.justifyContent (Css.center)
     ] [] (
-        styled Html.Styled.p [ fontWeight bold, Css.paddingRight (Css.px 16) ]  [] [ text "Algorithm:" ]
+        styled Html.Styled.p 
+        [ fontWeight bold, 
+          Css.paddingRight (Css.px 16) 
+        ]  [] [ text "Algorithm:" ]
     :: (List.map 
         (\algo -> radio (algorithmToString algo) (algorithm == algo) (ChangeAlgorithm algo)) 
         availableAlgorithms)
