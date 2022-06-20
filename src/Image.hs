@@ -61,12 +61,13 @@ decodeImage imgBase64 = do
   return resized
 
 resizeNNSafeToScale :: Int -> M.RawImage -> Either String M.RawImage
-resizeNNSafeToScale nh img = do
+resizeNNSafeToScale nd img = do
   let (Z :. h :. w :. _) = R.extent img
-  if (h > nh) 
+  let ratio = nd `divf` (max h w) 
+  if (ratio < 1.0) 
     then do
-      let nw = floor ((nh `divf` h) * fromIntegral w) :: Int
-      resizeNNSafe nh nw img
+      let scale = \d -> floor (ratio * fromIntegral d)
+      resizeNNSafe (scale h) (scale w) img
     else 
       return img
 
