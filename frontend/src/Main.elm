@@ -50,14 +50,16 @@ view state =
             styledH1 [] [ text "Haskell Palette Demo" ] ::
             case state of
                 NoImage algorithm -> ([
+                    algorithmPicker algorithm,
                     uploadImageButton [ onClick ChooseFileRequest ] [ text "Upload image!" ]
                     ])
-                Loading image -> ([
+                Loading _ image -> ([
                     imageView image,
                     colorsSkeleton,
                     skeletonAnimation
                     ])
-                ShowingPalette image colors -> ([
+                ShowingPalette algorithm image colors -> ([
+                    algorithmPicker algorithm,
                     imageView image,
                     colorsPalette colors,
                     uploadImageButton [ onClick Reset ] [ text "Try again!" ]
@@ -77,16 +79,17 @@ update msg state =
                     ChooseFileRequest -> (state, Select.file ["image/jpeg", "image/png"] FileSelected)
                     FileSelected file -> (state, Task.perform FileLoaded (File.toUrl file))
                     FileLoaded image -> (
-                        Loading image,
+                        Loading algorithm image,
                         getPaletteFromImage 
                             algorithm
                             (imageUrlToPureBase64 image)
                         )
+                    ChangeAlgorithm algo -> (NoImage algo, Cmd.none)
                     _ -> (state, Cmd.none)
-            Loading image ->
+            Loading algorithm image ->
                 case msg of
                     GotPalette (Ok palette) -> (
-                        ShowingPalette image palette,
+                        ShowingPalette algorithm image palette,
                         Cmd.none
                         )
                     GotPalette (Err error) -> (
@@ -94,11 +97,11 @@ update msg state =
                         Cmd.none
                         )
                     _ -> (state, Cmd.none)
-            ShowingPalette image _ -> 
+            ShowingPalette algorithm image _ -> 
                 case msg of
                     ChangeAlgorithm newAlgorithm -> (
-                        Loading image,
-                        getPaletteFromImage newAlgorithm image
+                        Loading algorithm image,
+                        getPaletteFromImage newAlgorithm (imageUrlToPureBase64 image)
                         )
                     Reset -> (NoImage Histogram, Cmd.none)
                     _ -> (state, Cmd.none)

@@ -6,10 +6,14 @@ import File exposing (File)
 type alias Color = String
 type alias ImageString = String
 type Algorithm = Histogram | MedianCut | Kmeans | KmeansPP
+
+availableAlgorithms : List Algorithm
+availableAlgorithms = [Histogram, MedianCut, Kmeans, KmeansPP]
+
 type State = 
     NoImage Algorithm
-    | Loading ImageString
-    | ShowingPalette ImageString (List Color)
+    | Loading Algorithm ImageString
+    | ShowingPalette Algorithm ImageString (List Color)
     | Error String
 
 type alias Palette = List Color
