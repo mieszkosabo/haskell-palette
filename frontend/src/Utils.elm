@@ -39,9 +39,17 @@ imageUrlToPureBase64 img = String.fromList (dropWhile ((/=) ',') (String.toList 
 const : a -> b -> a
 const x _ = x
 
-algorithmToString : Algorithm -> String
-algorithmToString algorithm = 
+algorithmToJSONString : Algorithm -> String
+algorithmToJSONString algorithm = 
     case algorithm of
+        Histogram -> "histogram"
         MedianCut -> "median_cut"
         Kmeans -> "k_means"
         KmeansPP -> "k_means_pp"
+algorithmToString : Algorithm -> String
+algorithmToString algorithm = 
+    case algorithm of
+        Histogram -> "Histogram"
+        MedianCut -> "Median Cut"
+        Kmeans -> "K means"
+        KmeansPP -> "K means++"

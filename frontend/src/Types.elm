@@ -5,19 +5,16 @@ import File exposing (File)
 
 type alias Color = String
 type alias ImageString = String
-type Algorithm = MedianCut | Kmeans | KmeansPP
-type LocalState = Initial | Loading | ShowingPalette | Error
+type Algorithm = Histogram | MedianCut | Kmeans | KmeansPP
 
--- TODO: refactor into union of possible states (eg. we know that image
--- is Nothing in Error localState, and Just image in ShowingPalette, etc...)
-type alias State = {
-    state: LocalState,
-    algorithm: Maybe Algorithm,
-    image: Maybe ImageString,
-    colors : List Color,
-    errorMessage : Maybe String
-    }
+availableAlgorithms : List Algorithm
+availableAlgorithms = [Histogram, MedianCut, Kmeans, KmeansPP]
 
+type State = 
+    NoImage Algorithm
+    | Loading Algorithm ImageString
+    | ShowingPalette Algorithm ImageString (List Color)
+    | Error String
 
 type alias Palette = List Color
 
@@ -26,3 +23,5 @@ type Msg
     | FileSelected File 
     | FileLoaded String
     | GotPalette (Result Http.Error (List Color))
+    | Reset
+    | ChangeAlgorithm Algorithm

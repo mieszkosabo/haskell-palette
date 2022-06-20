@@ -6,8 +6,8 @@ import Html.Styled.Events exposing (..)
 import Css exposing (..)
 import Css.Global exposing (..)
 import Css.Transitions exposing (transition)
-import Css.Animations
 import Types exposing (..)
+import Utils exposing (const, algorithmToString)
 
 type alias StyledComponent a = List (Attribute a) -> List (Html a) -> Html a
 
@@ -126,3 +126,43 @@ colorsSkeleton = styled Html.Styled.div [
 
 skeletonAnimation = Css.Global.global [Css.Global.selector "@keyframes glow"
     [ Css.property "0%, 100% { opacity" "1; } 50% { opacity: 0.5; }" ]]
+
+radio : String -> Bool -> a -> Html a
+radio value isChecked msg =
+    styled Html.Styled.label 
+    [ Css.displayFlex,
+      Css.padding2 (Css.px 0) (Css.px 4),
+      Css.alignItems (Css.center),
+      Css.cursor (Css.pointer)
+    ] []
+    [
+        styled Html.Styled.input 
+        [ Css.margin (Css.px 6), 
+          Css.cursor (Css.pointer) 
+        ]
+        [ 
+            type_ "radio", 
+            name "algorithm", 
+            onInput (const msg), 
+            Html.Styled.Attributes.checked isChecked 
+            ] []
+    , text value
+    ]
+
+
+algorithmPicker : Algorithm -> Html Msg
+algorithmPicker algorithm  = styled Html.Styled.div [  
+    Css.marginBottom (Css.px 32),
+    Css.width (Css.pct 100),
+    Css.displayFlex,
+    Css.alignItems (Css.center),
+    Css.justifyContent (Css.center)
+    ] [] (
+        styled Html.Styled.p 
+        [ fontWeight bold, 
+          Css.paddingRight (Css.px 16) 
+        ]  [] [ text "Algorithm:" ]
+    :: (List.map 
+        (\algo -> radio (algorithmToString algo) (algorithm == algo) (ChangeAlgorithm algo)) 
+        availableAlgorithms)
+        )

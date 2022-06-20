@@ -22,7 +22,7 @@ endpointUrl = "/upload"
 
 apiRequestEncoder : Algorithm -> ImageString -> Encode.Value
 apiRequestEncoder algorithm image = Encode.object [
-    ("algorithm", Encode.string (algorithmToString algorithm)),
+    ("algorithm", Encode.string (algorithmToJSONString algorithm)),
     ("image", Encode.string image)
     ]
 
@@ -38,63 +38,77 @@ getPaletteFromImage algorithm image = Http.post {
     }
 
 initialState : State
-initialState = {
-    state = Initial,
-    algorithm = Nothing,
-    image = Nothing,
-    colors = [],
-    errorMessage = Nothing
-    }
+initialState = NoImage Histogram
 
-imageView : Maybe ImageString -> Html a
-imageView image = case image of
-                        Nothing -> emptyNode
-                        Just content -> styledImg [ src content ] []
+imageView : ImageString -> Html a
+imageView image = styledImg [ src image ] []
 
 view : State -> Html Msg
-view model =
-    
+view state =
     styledContainerOutside [] [
-        styledContainerInside [] ([
-            styledH1 [] [ text "Haskell Palette Demo" ]] ++
-            case model.state of
-                Initial -> ([
+        styledContainerInside [] (
+            styledH1 [] [ text "Haskell Palette Demo" ] ::
+            case state of
+                NoImage algorithm -> ([
+                    algorithmPicker algorithm,
                     uploadImageButton [ onClick ChooseFileRequest ] [ text "Upload image!" ]
                     ])
-                Loading -> ([
+                Loading _ image -> ([
+                    imageView image,
                     colorsSkeleton,
                     skeletonAnimation
                     ])
-                ShowingPalette -> ([
-                    imageView model.image,
-                    colorsPalette model.colors,
-                    uploadImageButton [ onClick ChooseFileRequest ] [ text "Try again!" ]
+                ShowingPalette algorithm image colors -> ([
+                    algorithmPicker algorithm,
+                    imageView image,
+                    colorsPalette colors,
+                    uploadImageButton [ onClick Reset ] [ text "Try again!" ]
                     ])
-                Error -> ([
-                    Html.Styled.h2 [] [ text "Unexpected error occured!"],
-                    uploadImageButton [ onClick ChooseFileRequest ] [ text "Try again!" ]
+                Error errorMessage -> ([
+                    Html.Styled.h2 [] [ text ("Unexpected error occured: " ++ errorMessage) ],
+                    uploadImageButton [ onClick Reset ] [ text "Try again!" ]
                     ])
             )
     ]
 
 update : Msg -> State -> (State, Cmd Msg)
 update msg state =
-    case msg of
-        ChooseFileRequest -> (state, Select.file ["image/jpeg", "image/png"] FileSelected)
-        FileSelected file -> (state, Task.perform FileLoaded (File.toUrl file))
-        FileLoaded content -> (
-            { state | image = Just content, state = Loading },
-            getPaletteFromImage 
-                (Maybe.withDefault KmeansPP state.algorithm) 
-                (imageUrlToPureBase64 content)
-            )
-        GotPalette (Ok palette) -> (
-            { state | colors = palette, state = ShowingPalette }, Cmd.none
-            )
-        GotPalette (Err error) -> (
-            { state | errorMessage = Just (buildErrorMessage error), state = Error },
-            Cmd.none
-            )
+        case state of 
+            NoImage algorithm ->
+                case msg of
+                    ChooseFileRequest -> (state, Select.file ["image/jpeg", "image/png", "image/bitmap", "image/gif", "image/tiff"] FileSelected)
+                    FileSelected file -> (state, Task.perform FileLoaded (File.toUrl file))
+                    FileLoaded image -> (
+                        Loading algorithm image,
+                        getPaletteFromImage 
+                            algorithm
+                            (imageUrlToPureBase64 image)
+                        )
+                    ChangeAlgorithm algo -> (NoImage algo, Cmd.none)
+                    _ -> (state, Cmd.none)
+            Loading algorithm image ->
+                case msg of
+                    GotPalette (Ok palette) -> (
+                        ShowingPalette algorithm image palette,
+                        Cmd.none
+                        )
+                    GotPalette (Err error) -> (
+                        Error (buildErrorMessage error),
+                        Cmd.none
+                        )
+                    _ -> (state, Cmd.none)
+            ShowingPalette algorithm image _ -> 
+                case msg of
+                    ChangeAlgorithm newAlgorithm -> (
+                        Loading algorithm image,
+                        getPaletteFromImage newAlgorithm (imageUrlToPureBase64 image)
+                        )
+                    Reset -> (NoImage Histogram, Cmd.none)
+                    _ -> (state, Cmd.none)
+            Error _ -> 
+                case msg of
+                    Reset -> (NoImage Histogram, Cmd.none)
+                    _ -> (state, Cmd.none)
 
 main : Program () State Msg
 main = Browser.element { 
