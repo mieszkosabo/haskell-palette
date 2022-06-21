@@ -25,6 +25,53 @@ targetImageSize = 256
 paletteSize = 6
 histogramGridSize = 3
 
+type ChannelRange = (Int, Int)
+
+medianCut :: M.ComputedImage -> M.Palette
+medianCut img = map (C.rgbToHex . C.avarageColor . snd) $ go (paletteSize - 1) [(evalRanges init, init)] 
+  where
+    init :: [M.RGB]
+    init = V.toList . R.toUnboxed $ img
+
+    go :: Int -> [([ChannelRange], [M.RGB])] -> [([ChannelRange], [M.RGB])]
+    go 0 s = s
+    go n s = go (n - 1) (oldBuckets ++ newBuckets)
+      where
+        (idx, (ranges, elems)) = L.maximumBy (compare `on` maxAbsRange . fst . snd) (zip [0..] s)
+        (rIdx, range) = L.maximumBy (compare `on` absRange . snd) (zip [0..] ranges)
+        median = mid . map (U.tupleAtPos3 rIdx) $ elems
+        (elems1, elems2) = L.partition (\pixel -> U.tupleAtPos3 rIdx pixel <= median) elems
+        oldBuckets = deleteAt idx s
+        newBuckets = map (\els -> (evalRanges els, els)) [elems1, elems2]
+
+    maxAbsRange :: [ChannelRange] -> Int
+    maxAbsRange ranges = L.maximumBy (compare) (map absRange ranges) 
+
+    absRange :: ChannelRange -> Int
+    absRange (l, u) = u - l
+
+    evalRanges :: [M.RGB] -> [ChannelRange]
+    evalRanges = foldl update [(255, 0), (255, 0), (255, 0)]
+      where
+        update ranges@[r_r, g_r, b_r] rgb@(r, g, b) = [update' r_r r, update' g_r g, update' b_r b]
+        update' range@(l, u) v = (min l v, max u v)
+
+    mid :: Integral a => [a] -> a
+    mid xs = case mid' xs of
+      [x] -> x
+      [x,y] -> (x `div` 2) + (y `div` 2)
+      where 
+        mid' [] = []
+        mid' t = mid'' t t
+      
+        mid'' (x:_) [_] = [x]
+        mid'' (x:y:_) [_,_] = [x,y]
+        mid'' (_:t) (_:_:u) = mid'' t u  
+
+    deleteAt :: Int -> [a] -> [a]
+    deleteAt idx xs = lft ++ rgt
+      where (lft, (_:rgt)) = splitAt idx xs
+
 histogram :: M.ComputedImage -> M.Palette
 histogram pixels = topColors
   where

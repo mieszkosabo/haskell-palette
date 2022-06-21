@@ -31,7 +31,7 @@ generatePalette request = do
   let img = M.image request
   img <- I.decodeImage img >>= I.resize
   computed <- R.computeP img :: Either String M.ComputedImage
-  let res = I.histogram computed
+  let res = I.medianCut computed
   return M.ColorsResponse { M.colors = res }
 
 server :: IO ()
