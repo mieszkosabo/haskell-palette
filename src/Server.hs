@@ -29,9 +29,10 @@ samplePalette = [
 generatePalette :: M.ImageRequest -> Either String M.ColorsResponse
 generatePalette request = do 
   let img = M.image request
-  pixels <- I.decodeImage img
-  let hist = I.histogram pixels
-  return M.ColorsResponse { M.colors = hist }
+  img <- I.decodeImage img >>= I.resize
+  computed <- R.computeP img :: Either String M.ComputedImage
+  let res = I.histogram computed
+  return M.ColorsResponse { M.colors = res }
 
 server :: IO ()
 server = do
