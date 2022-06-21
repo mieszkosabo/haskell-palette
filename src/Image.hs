@@ -25,9 +25,11 @@ targetImageSize = 256
 paletteSize = 6
 histogramGridSize = 3
 
+type Algorithm = M.ComputedImage -> M.Palette
+
 type ChannelRange = (Int, Int)
 
-medianCut :: M.ComputedImage -> M.Palette
+medianCut :: Algorithm
 medianCut img = map (C.rgbToHex . C.avarageColor . snd) $ go (paletteSize - 1) [(evalRanges init, init)] 
   where
     init :: [M.RGB]
@@ -72,7 +74,7 @@ medianCut img = map (C.rgbToHex . C.avarageColor . snd) $ go (paletteSize - 1) [
     deleteAt idx xs = lft ++ rgt
       where (lft, (_:rgt)) = splitAt idx xs
 
-histogram :: M.ComputedImage -> M.Palette
+histogram :: Algorithm
 histogram pixels = topColors
   where
     buckets = createBuckets pixels histogramGridSize
