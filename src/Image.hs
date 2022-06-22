@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Image where
 
@@ -10,19 +11,70 @@ import qualified Data.ByteString.Base64 as B64
 import qualified Util as U
 import qualified Data.List as L
 import qualified Color as C
+import qualified Data.Vector.Unboxed as V
+import qualified Data.Map as Map
 
 import Data.Array.Repa ((:.), (:.)(..), Z(..))
-import Data.Array.Repa.Index (ix3)
-import GHC.Word (Word8)
+import Data.Array.Repa.Index (ix2)
 import Control.Monad.State
 import qualified Data.Map as Map
 import Data.Function (on)
+import GHC.Word (Word8)
 
 targetImageSize = 256
 paletteSize = 6
 histogramGridSize = 3
 
-histogram :: M.RawImage -> M.Palette
+type Algorithm = M.ComputedImage -> M.Palette
+
+type ChannelRange = (Int, Int)
+
+medianCut :: Algorithm
+medianCut img = map (C.rgbToHex . C.avarageColor . snd) $ go (paletteSize - 1) [(evalRanges init, init)] 
+  where
+    init :: [M.RGB]
+    init = V.toList . R.toUnboxed $ img
+
+    go :: Int -> [([ChannelRange], [M.RGB])] -> [([ChannelRange], [M.RGB])]
+    go 0 s = s
+    go n s = go (n - 1) (oldBuckets ++ newBuckets)
+      where
+        (idx, (ranges, elems)) = L.maximumBy (compare `on` maxAbsRange . fst . snd) (zip [0..] s)
+        (rIdx, range) = L.maximumBy (compare `on` absRange . snd) (zip [0..] ranges)
+        median = mid . map (U.tupleAtPos3 rIdx) $ elems
+        (elems1, elems2) = L.partition (\pixel -> U.tupleAtPos3 rIdx pixel <= median) elems
+        oldBuckets = deleteAt idx s
+        newBuckets = map (\els -> (evalRanges els, els)) [elems1, elems2]
+
+    maxAbsRange :: [ChannelRange] -> Int
+    maxAbsRange ranges = L.maximumBy (compare) (map absRange ranges) 
+
+    absRange :: ChannelRange -> Int
+    absRange (l, u) = u - l
+
+    evalRanges :: [M.RGB] -> [ChannelRange]
+    evalRanges = foldl update [(255, 0), (255, 0), (255, 0)]
+      where
+        update ranges@[r_r, g_r, b_r] rgb@(r, g, b) = [update' r_r r, update' g_r g, update' b_r b]
+        update' range@(l, u) v = (min l v, max u v)
+
+    mid :: Integral a => [a] -> a
+    mid xs = case mid' xs of
+      [x] -> x
+      [x,y] -> (x `div` 2) + (y `div` 2)
+      where 
+        mid' [] = []
+        mid' t = mid'' t t
+      
+        mid'' (x:_) [_] = [x]
+        mid'' (x:y:_) [_,_] = [x,y]
+        mid'' (_:t) (_:_:u) = mid'' t u  
+
+    deleteAt :: Int -> [a] -> [a]
+    deleteAt idx xs = lft ++ rgt
+      where (lft, (_:rgt)) = splitAt idx xs
+
+histogram :: Algorithm
 histogram pixels = topColors
   where
     buckets = createBuckets pixels histogramGridSize
@@ -30,23 +82,23 @@ histogram pixels = topColors
     sorted = L.sortBy (\(_, count1) (_, count2) -> compare count2 count1) avgColorsAndCounts
     topColors = take paletteSize $ map (C.rgbToHex . fst) sorted
 
-createBuckets :: M.RawImage -> Int -> [[C.RGB]]
+createBuckets :: M.ComputedImage -> Int -> [[M.RGB]]
 createBuckets pixels gridSize = Map.elems $ execState createBuckets' emptyState
   where
-    (Z :. nrRow :. nrCol :. _) = R.extent pixels
+    (Z :. nrRow :. nrCol) = R.extent pixels
     imgMatrix = [(row, col) | row <- [0..nrRow - 1], col <- [0..nrCol - 1]]
     emptyState = Map.empty
 
-    levelAt :: (Int, Int) -> Int -> Int
-    levelAt (row, col) rgb = fromIntegral $ R.unsafeIndex pixels (Z :. row :. col :. rgb)
+    levelAt :: (Int, Int) -> M.RGB
+    levelAt (row, col) = R.unsafeIndex pixels (Z :. row :. col)
 
-    createBuckets' :: State (Map.Map Int [C.RGB]) ()
+    createBuckets' :: State (Map.Map Int [M.RGB]) ()
     createBuckets' = do
       forM_ imgMatrix (\pos -> do
-        let rgb@[r, g, b] = map (levelAt pos) [0..2]
-        let [rIdx, gIdx, bIdx] = map (valueToBucketIdx . fromIntegral) rgb
+        let rgb@(r, g, b) = levelAt pos
+        let (rIdx, gIdx, bIdx) = U.mapTuple3 (valueToBucketIdx . fromIntegral) rgb
         let idx = turn3DIndexTo1DIndex rIdx gIdx bIdx
-        modify (\s -> let appendedArr = (r, g, b) : Map.findWithDefault [] idx s in Map.insert idx appendedArr s)
+        modify (\s -> let appendedArr = rgb : Map.findWithDefault [] idx s in Map.insert idx appendedArr s)
         )
     valueToBucketIdx val = floor (val / (255 / fromIntegral gridSize))
     turn3DIndexTo1DIndex x y z = x + (gridSize * y) + (gridSize * gridSize * z)
@@ -55,14 +107,16 @@ decodeImage :: String -> Either String M.RawImage
 decodeImage imgBase64 = do
   let bimg = U.strToBStr imgBase64
   dimg <- B64.decode bimg
-  rgb <- CR.decodeImageRGB dimg
-  let raw = CR.imgData rgb 
-  resized <- resizeNNSafeToScale targetImageSize raw
-  return resized
+  rgba <- CR.decodeImageRGBA dimg
+  let collapsed = CR.collapseColorChannel rgba
+  return $ R.map (U.mapTuple3 (fromIntegral . toInteger :: Word8 -> Int)) collapsed 
+
+resize :: M.RawImage -> Either String M.RawImage
+resize = resizeNNSafeToScale targetImageSize
 
 resizeNNSafeToScale :: Int -> M.RawImage -> Either String M.RawImage
 resizeNNSafeToScale nd img = do
-  let (Z :. h :. w :. _) = R.extent img
+  let (Z :. h :. w) = R.extent img
   let ratio = nd `divf` (max h w) 
   if (ratio < 1.0) 
     then do
@@ -77,15 +131,14 @@ resizeNNSafe nh nw img = do
   return $ resizeNN nh nw img
 
 resizeNN :: Int -> Int -> M.RawImage -> M.RawImage
-resizeNN nh nw img = R.traverse img (\_ -> ix3 nh nw z) idxf
+resizeNN nh nw img = R.traverse img (\_ -> ix2 nh nw) idxf
   where
-    (Z :. h :. w :. z) = R.extent img
+    (Z :. h :. w) = R.extent img
 
     y_ratio = h `divf` nh
     x_ratio = w `divf` nw
 
-    idxf :: (R.DIM3 -> Word8) -> R.DIM3 -> Word8
-    idxf f (Z :. y :. x :. z) = f (ix3 py px z)
+    idxf f (Z :. y :. x) = f (ix2 py px)
       where
         py = floor ((fromIntegral y) * y_ratio) :: Int
         px = floor ((fromIntegral x) * x_ratio) :: Int

@@ -26,12 +26,21 @@ samplePalette = [
                 "#ba7d67"
                 ]
 
+getAlgorithm :: M.ImageRequest -> I.Algorithm
+getAlgorithm request = case M.algorithm request of
+  "histogram" -> I.histogram
+  "median_cut" -> I.medianCut
+  "k_means" -> undefined
+  "k_means_pp" -> undefined
+
 generatePalette :: M.ImageRequest -> Either String M.ColorsResponse
 generatePalette request = do 
   let img = M.image request
-  pixels <- I.decodeImage img
-  let hist = I.histogram pixels
-  return M.ColorsResponse { M.colors = hist }
+  img <- I.decodeImage img >>= I.resize
+  computed <- R.computeP img :: Either String M.ComputedImage
+  let algorithm = getAlgorithm request
+  let colors = algorithm computed
+  return M.ColorsResponse { M.colors = colors }
 
 server :: IO ()
 server = do

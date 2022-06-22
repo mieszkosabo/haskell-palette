@@ -35,3 +35,13 @@ listToTuple3 _ = error "Argument list must have at least 3 elements"
 
 tupleToList3 :: (a, a, a) -> [a]
 tupleToList3 (a, b, c) = [a, b, c]
+
+mapTuple3 :: (a -> b) -> (a, a, a) -> (b, b, b)
+mapTuple3 f (a, b, c) = (f a, f b, f c)
+
+tupleAtPos3 :: Int -> (a, a, a) -> a
+tupleAtPos3 pos (a, b, c) = case pos of
+    0 -> a
+    1 -> b
+    2 -> c
+    _ -> error "Out of bounds"
