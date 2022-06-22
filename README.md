@@ -85,10 +85,27 @@ environment replacing dev local environment.
 2. Install [VS Code remote containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 3. Open repository in VS Code
 4. Open command palette (ctrl+shift+p) and use "Remote Containers: Reopen in container" action
-5. Use prepared `Makefile` commands to work interactively with `cabal` (`make run-image` starts the local
+5. Use prepared `Makefile` commands to work interactively with `cabal` (`make run-dev` starts the local
    instance of the application, but first the application frontend should be compiled separately)
 
 ### Building frontend
 
 Run `make build-frontend`. It will create an `index.html` in the `frontend` directory.
 By default, the frontend is trying to reach the API on `/` so the path is relative to the frontend source.
+
+### Running local docker image
+
+Repository includes separate minimalistic configuration of the environment for running the application.
+We've prepared our Docker images that are designed to compile frontend and backend of the application
+and serve the compiled files in separate environment.
+
+Using single command `make run-image` builds local app image and starts the prepared application on `3000`
+port of `localhost`. The whole process includes:
+- preparing the environment for frontend compilation and the compilation itself
+- preparing the environment for backend compilation and the compilation itself
+- preparing pure image with compiled sources ready-to-run with `docker run` command (that is executed as last step
+  of `make run-image`).
+
+Our configuration of CI/CD also publishes automatically the newest image with app image on 
+[dockerhub,](https://hub.docker.com/r/zpf2022/haskell-palette) so it can be just downloaded and 
+launched with no local compilation process needed.
