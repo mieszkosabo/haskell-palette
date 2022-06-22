@@ -20,25 +20,25 @@ import Types exposing (..)
 endpointUrl : String
 endpointUrl = "/upload"
 
-apiRequestEncoder : Algorithm -> ImageString -> Encode.Value
-apiRequestEncoder algorithm image = Encode.object [
+apiRequestEncoder : Algorithm -> Int -> ImageString -> Encode.Value
+apiRequestEncoder algorithm count image = Encode.object [
     ("algorithm", Encode.string (algorithmToJSONString algorithm)),
-    ("image", Encode.string image)
+    ("image", Encode.string image),
+    ("count", Encode.int count)
     ]
 
 paletteDecoder : Decode.Decoder (List Types.Color)
 paletteDecoder = Decode.field "colors" (Decode.list Decode.string)
 
-
-getPaletteFromImage : Algorithm -> ImageString -> Cmd Msg
-getPaletteFromImage algorithm image = Http.post {
+getPaletteFromImage : Algorithm -> Int -> ImageString -> Cmd Msg
+getPaletteFromImage algorithm count image = Http.post {
     url = endpointUrl,
-    body = Http.jsonBody (apiRequestEncoder algorithm image),
+    body = Http.jsonBody (apiRequestEncoder algorithm count image),
     expect = Http.expectJson GotPalette paletteDecoder
     }
 
 initialState : State
-initialState = NoImage Histogram
+initialState = NoImage Histogram defaultCount
 
 imageView : ImageString -> Html a
 imageView image = styledImg [ src image ] []
@@ -49,17 +49,17 @@ view state =
         styledContainerInside [] (
             styledH1 [] [ text "Haskell Palette Demo" ] ::
             case state of
-                NoImage algorithm -> ([
-                    algorithmPicker algorithm,
+                NoImage algorithm count -> ([
+                    settingsPicker algorithm count,
                     uploadImageButton [ onClick ChooseFileRequest ] [ text "Upload image!" ]
                     ])
-                Loading _ image -> ([
+                Loading _ _ image -> ([
                     imageView image,
                     colorsSkeleton,
                     skeletonAnimation
                     ])
-                ShowingPalette algorithm image colors -> ([
-                    algorithmPicker algorithm,
+                ShowingPalette algorithm count image colors -> ([
+                    settingsPicker algorithm count,
                     imageView image,
                     colorsPalette colors,
                     uploadImageButton [ onClick Reset ] [ text "Try again!" ]
@@ -74,22 +74,21 @@ view state =
 update : Msg -> State -> (State, Cmd Msg)
 update msg state =
         case state of 
-            NoImage algorithm ->
+            NoImage algorithm count ->
                 case msg of
                     ChooseFileRequest -> (state, Select.file ["image/jpeg", "image/png", "image/bitmap", "image/gif", "image/tiff"] FileSelected)
                     FileSelected file -> (state, Task.perform FileLoaded (File.toUrl file))
                     FileLoaded image -> (
-                        Loading algorithm image,
-                        getPaletteFromImage 
-                            algorithm
-                            (imageUrlToPureBase64 image)
+                        Loading algorithm count image,
+                        getPaletteFromImage algorithm count (imageUrlToPureBase64 image)
                         )
-                    ChangeAlgorithm algo -> (NoImage algo, Cmd.none)
+                    ChangeAlgorithm newAlgorithm -> (NoImage newAlgorithm count, Cmd.none)
+                    ChangeCount newCount -> (NoImage algorithm newCount, Cmd.none)
                     _ -> (state, Cmd.none)
-            Loading algorithm image ->
+            Loading algorithm count image ->
                 case msg of
                     GotPalette (Ok palette) -> (
-                        ShowingPalette algorithm image palette,
+                        ShowingPalette algorithm count image palette,
                         Cmd.none
                         )
                     GotPalette (Err error) -> (
@@ -97,17 +96,21 @@ update msg state =
                         Cmd.none
                         )
                     _ -> (state, Cmd.none)
-            ShowingPalette algorithm image _ -> 
+            ShowingPalette algorithm count image _ -> 
                 case msg of
                     ChangeAlgorithm newAlgorithm -> (
-                        Loading algorithm image,
-                        getPaletteFromImage newAlgorithm (imageUrlToPureBase64 image)
+                        Loading newAlgorithm count image,
+                        getPaletteFromImage newAlgorithm count (imageUrlToPureBase64 image)
                         )
-                    Reset -> (NoImage Histogram, Cmd.none)
+                    ChangeCount newCount -> (
+                        Loading algorithm newCount image,
+                        getPaletteFromImage algorithm newCount (imageUrlToPureBase64 image)
+                        )
+                    Reset -> (initialState, Cmd.none)
                     _ -> (state, Cmd.none)
             Error _ -> 
                 case msg of
-                    Reset -> (NoImage Histogram, Cmd.none)
+                    Reset -> (initialState, Cmd.none)
                     _ -> (state, Cmd.none)
 
 main : Program () State Msg

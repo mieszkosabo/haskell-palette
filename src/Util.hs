@@ -13,16 +13,13 @@ import System.Environment (lookupEnv)
 debug :: Show a => a -> String -> a
 debug o name = trace (name ++ " = " ++ show o) o
 
-
 strToBStr :: String -> B.ByteString
 strToBStr = encodeUtf8 . T.pack
-
 
 envVarString :: String -> String -> IO String 
 envVarString name def = do
     value <- lookupEnv name
     return $ fromMaybe def value
-
 
 envVarInt :: String -> Int -> IO Int
 envVarInt name def = do
@@ -45,3 +42,9 @@ tupleAtPos3 pos (a, b, c) = case pos of
     1 -> b
     2 -> c
     _ -> error "Out of bounds"
+
+splitAtEvery :: (Eq a) => Int -> [a] -> [[a]]
+splitAtEvery ith ys
+    | zs' == [] = [zs]
+    | otherwise = zs : splitAtEvery ith zs'
+    where (zs, zs') = splitAt ith ys

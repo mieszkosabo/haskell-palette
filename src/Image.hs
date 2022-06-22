@@ -13,29 +13,67 @@ import qualified Data.List as L
 import qualified Color as C
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Map as Map
+import qualified Data.Ord as O
 
 import Data.Array.Repa ((:.), (:.)(..), Z(..))
 import Data.Array.Repa.Index (ix2)
 import Control.Monad.State
-import qualified Data.Map as Map
 import Data.Function (on)
 import GHC.Word (Word8)
 
 targetImageSize = 256
-paletteSize = 6
 histogramGridSize = 3
 
-type Algorithm = M.ComputedImage -> M.Palette
+imagePoints :: M.ComputedImage -> [M.RGB]
+imagePoints = V.toList . R.toUnboxed
 
-type ChannelRange = (Int, Int)
+euclideanDist :: M.Vect -> M.Vect -> Double
+euclideanDist xs ys = sqrt . sum $ zipWith (\x y-> (x - y) ^ 2) xs ys
 
-medianCut :: Algorithm
-medianCut img = map (C.rgbToHex . C.avarageColor . snd) $ go (paletteSize - 1) [(evalRanges init, init)] 
+centroid :: [M.PointHolder] -> [Double]
+centroid points = L.map (flip (/) l . sum) $ L.transpose (L.map M.normed points)
+    where l = fromIntegral $ L.length points
+
+closest :: [M.Vect] -> M.Vect -> M.Vect
+closest points point = L.minimumBy (O.comparing $ euclideanDist point) points
+
+reclusterForCentroids :: [M.Vect] -> [M.PointHolder] -> [[M.PointHolder]]
+reclusterForCentroids centroids points = L.map (L.map snd) $ L.groupBy ((==) `on` fst) reclustered
+    where reclustered = L.sort [(closest centroids (M.normed p), p) | p <- points]
+
+recluster :: [[M.PointHolder]] -> [[M.PointHolder]]
+recluster clusters = reclusterForCentroids centroids $ L.concat clusters
+    where centroids = L.map centroid clusters
+
+kmeansUntilFixed :: [[M.PointHolder]] -> [[M.PointHolder]]
+kmeansUntilFixed clusters
+    | clusters == clusters' = clusters
+    | otherwise = kmeansUntilFixed clusters'
+    where clusters' = recluster clusters
+
+kmeansForK :: Int -> [M.PointHolder] -> [[M.PointHolder]]
+kmeansForK k points = kmeansUntilFixed $ U.splitAtEvery lth points
+    where lth = (length points + k - 1) `div` k
+
+kmeans :: M.Algorithm
+kmeans paletteSize = extractColors . cluster . (L.map wrapToHolder)
   where
-    init :: [M.RGB]
-    init = V.toList . R.toUnboxed $ img
+    norm :: M.RGB -> [Double]
+    norm (x, y, z) = [x `divf` 255, y `divf` 255, z `divf` 255]
 
-    go :: Int -> [([ChannelRange], [M.RGB])] -> [([ChannelRange], [M.RGB])]
+    wrapToHolder :: M.RGB -> M.PointHolder
+    wrapToHolder c = M.PointHolder { M.normed = norm c, M.color = c }
+
+    cluster :: [M.PointHolder] -> [[M.PointHolder]]
+    cluster = kmeansForK paletteSize
+
+    extractColors :: [[M.PointHolder]] -> [M.RGB]
+    extractColors = L.map (C.avarageColor . L.map M.color)
+
+medianCut :: M.Algorithm
+medianCut paletteSize points = map (C.avarageColor . snd) $ go (paletteSize - 1) [(evalRanges points, points)] 
+  where
+    go :: Int -> [([M.ChannelRange], [M.RGB])] -> [([M.ChannelRange], [M.RGB])]
     go 0 s = s
     go n s = go (n - 1) (oldBuckets ++ newBuckets)
       where
@@ -46,13 +84,13 @@ medianCut img = map (C.rgbToHex . C.avarageColor . snd) $ go (paletteSize - 1) [
         oldBuckets = deleteAt idx s
         newBuckets = map (\els -> (evalRanges els, els)) [elems1, elems2]
 
-    maxAbsRange :: [ChannelRange] -> Int
+    maxAbsRange :: [M.ChannelRange] -> Int
     maxAbsRange ranges = L.maximumBy (compare) (map absRange ranges) 
 
-    absRange :: ChannelRange -> Int
+    absRange :: M.ChannelRange -> Int
     absRange (l, u) = u - l
 
-    evalRanges :: [M.RGB] -> [ChannelRange]
+    evalRanges :: [M.RGB] -> [M.ChannelRange]
     evalRanges = foldl update [(255, 0), (255, 0), (255, 0)]
       where
         update ranges@[r_r, g_r, b_r] rgb@(r, g, b) = [update' r_r r, update' g_r g, update' b_r b]
@@ -74,34 +112,27 @@ medianCut img = map (C.rgbToHex . C.avarageColor . snd) $ go (paletteSize - 1) [
     deleteAt idx xs = lft ++ rgt
       where (lft, (_:rgt)) = splitAt idx xs
 
-histogram :: Algorithm
-histogram pixels = topColors
+histogram :: M.Algorithm
+histogram paletteSize points = topColors
   where
-    buckets = createBuckets pixels histogramGridSize
+    buckets = createBuckets points histogramGridSize
     avgColorsAndCounts = map (\bucket -> (C.avarageColor bucket, length bucket)) buckets
     sorted = L.sortBy (\(_, count1) (_, count2) -> compare count2 count1) avgColorsAndCounts
-    topColors = take paletteSize $ map (C.rgbToHex . fst) sorted
+    topColors = take paletteSize $ map fst sorted
 
-createBuckets :: M.ComputedImage -> Int -> [[M.RGB]]
-createBuckets pixels gridSize = Map.elems $ execState createBuckets' emptyState
+createBuckets :: [M.RGB] -> Int -> [[M.RGB]]
+createBuckets points gridSize = Map.elems $ execState createBuckets' Map.empty
   where
-    (Z :. nrRow :. nrCol) = R.extent pixels
-    imgMatrix = [(row, col) | row <- [0..nrRow - 1], col <- [0..nrCol - 1]]
-    emptyState = Map.empty
-
-    levelAt :: (Int, Int) -> M.RGB
-    levelAt (row, col) = R.unsafeIndex pixels (Z :. row :. col)
-
     createBuckets' :: State (Map.Map Int [M.RGB]) ()
     createBuckets' = do
-      forM_ imgMatrix (\pos -> do
-        let rgb@(r, g, b) = levelAt pos
-        let (rIdx, gIdx, bIdx) = U.mapTuple3 (valueToBucketIdx . fromIntegral) rgb
-        let idx = turn3DIndexTo1DIndex rIdx gIdx bIdx
-        modify (\s -> let appendedArr = rgb : Map.findWithDefault [] idx s in Map.insert idx appendedArr s)
+      forM_ points (\rgb -> do
+        let rgbIdx = U.mapTuple3 valueToBucketIdx rgb
+        let idx = turn3DIndexTo1DIndex rgbIdx
+        let addToBuckets s = let appendedArr = rgb : Map.findWithDefault [] idx s in Map.insert idx appendedArr s
+        modify addToBuckets
         )
-    valueToBucketIdx val = floor (val / (255 / fromIntegral gridSize))
-    turn3DIndexTo1DIndex x y z = x + (gridSize * y) + (gridSize * gridSize * z)
+    valueToBucketIdx val = floor (fromIntegral val / (255 / fromIntegral gridSize))
+    turn3DIndexTo1DIndex (x, y, z) = x + (gridSize * y) + (gridSize * gridSize * z)
 
 decodeImage :: String -> Either String M.RawImage
 decodeImage imgBase64 = do

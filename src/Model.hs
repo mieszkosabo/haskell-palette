@@ -6,10 +6,13 @@ import qualified Data.Array.Repa as R
 import Data.Aeson (FromJSON, ToJSON)
 import GHC.Generics
 import GHC.Word (Word8)
+import Data.Function (on)
+import Data.Ord (comparing)
 
 data ImageRequest = ImageRequest { 
   algorithm :: String, 
-  image :: String
+  image :: String,
+  count :: Int
 } deriving (Show, Generic)
 
 newtype ColorsResponse = ColorsResponse { 
@@ -29,6 +32,23 @@ type FileName = String
 type ErrorMessage = String
 
 type RGB = (Int, Int, Int)
+
+type Algorithm = Int -> [RGB] -> [RGB]
+
+type ChannelRange = (Int, Int)
+
+type Vect = [Double]
+
+data PointHolder = PointHolder { 
+    normed :: Vect, 
+    color :: RGB
+}
+
+instance Eq PointHolder where
+   (==) = (==) `on` normed
+
+instance Ord PointHolder where
+    compare = comparing normed
 
 -- 256x256x256 where matrix value represents count
 -- of pixels of given RGB color

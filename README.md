@@ -26,8 +26,8 @@ methods selected by user. The basic usage of API includes:
 
 #### POST /upload
 
-The API request includes the selection of algorithm and the image data encoded using Base64 algorithm
-for image encoding.
+The API request includes the selection of algorithm, requested number of colors and the image data 
+encoded using Base64 algorithm for image encoding.
 The possible inputs for algorithms are:
 - `"histogram"`
 - `"median_cut"`
@@ -38,7 +38,8 @@ The possible inputs for algorithms are:
 ```
 {
     "algorithm": "histogram",
-    "image": "iVBORw0KGgoAAAANSUhEUgAAABMAAAASAgMAAADEYg36AAAADFBMVEVAAP8A/wD//wD/AABSvgk5AAAAIUlEQVR4nGNgYAgNDWEgg0wNYfj//+qqFUDyFQ7yFyoJADGDK+gsHi98AAAAAElFTkSuQmCC"
+    "image": "iVBORw0KGgoAAAANSUhEUgAAABMAAAASAgMAAADEYg36AAAADFBMVEVAAP8A/wD//wD/AABSvgk5AAAAIUlEQVR4nGNgYAgNDWEgg0wNYfj//+qqFUDyFQ7yFyoJADGDK+gsHi98AAAAAElFTkSuQmCC",
+    "count": 4
 }
 ```
 
