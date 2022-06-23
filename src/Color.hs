@@ -1,8 +1,9 @@
 module Color where
 
-import Numeric
 import qualified Util as U
 import qualified Model as M
+
+import Numeric
 
 -- we are averaging the squares of the colors because it gives better results:
 -- https://sighack.com/post/averaging-rgb-colors-the-right-way

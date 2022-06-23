@@ -11,9 +11,9 @@ availableAlgorithms : List Algorithm
 availableAlgorithms = [Histogram, MedianCut, Kmeans, KmeansPP]
 
 type State = 
-    NoImage Algorithm
-    | Loading Algorithm ImageString
-    | ShowingPalette Algorithm ImageString (List Color)
+    NoImage Algorithm Int
+    | Loading Algorithm Int ImageString
+    | ShowingPalette Algorithm Int ImageString (List Color)
     | Error String
 
 type alias Palette = List Color
@@ -25,3 +25,4 @@ type Msg
     | GotPalette (Result Http.Error (List Color))
     | Reset
     | ChangeAlgorithm Algorithm
+    | ChangeCount Int

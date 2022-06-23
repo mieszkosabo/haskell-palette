@@ -11,6 +11,9 @@ import Utils exposing (const, algorithmToString)
 
 type alias StyledComponent a = List (Attribute a) -> List (Html a) -> Html a
 
+defaultCount : Int
+defaultCount = 6
+
 styledH1 : StyledComponent a
 styledH1 = styled Html.Styled.h1 [ 
     fontSize (px 48), 
@@ -92,13 +95,13 @@ describedColor c = styled Html.Styled.div [
     Css.textAlign Css.center,
     Css.marginBottom (Css.px 32)
     ] [] [ 
-        pickedColor c,
-        Html.Styled.text c
-        ]
+           pickedColor c,
+           Html.Styled.text c
+         ]
 
 colorsPalette : List Types.Color -> Html a
 colorsPalette colors = styled Html.Styled.div [
-    Css.width (Css.pct 100),
+    Css.width (Css.pct 70),
     Css.displayFlex,
     Css.flexDirection Css.row,
     Css.flexWrap Css.wrap,
@@ -130,36 +133,56 @@ skeletonAnimation = Css.Global.global [Css.Global.selector "@keyframes glow"
 radio : String -> Bool -> a -> Html a
 radio value isChecked msg =
     styled Html.Styled.label 
-    [ Css.displayFlex,
+    [ 
+      Css.displayFlex,
       Css.padding2 (Css.px 0) (Css.px 4),
       Css.alignItems (Css.center),
       Css.cursor (Css.pointer)
     ] []
     [
-        styled Html.Styled.input 
-        [ Css.margin (Css.px 6), 
-          Css.cursor (Css.pointer) 
-        ]
-        [ 
-            type_ "radio", 
-            name "algorithm", 
-            onInput (const msg), 
-            Html.Styled.Attributes.checked isChecked 
-            ] []
+      styled Html.Styled.input 
+      [ 
+        Css.margin (Css.px 6), 
+        Css.cursor (Css.pointer) 
+      ]
+      [ 
+        type_ "radio", 
+        name "algorithm", 
+        onInput (const msg), 
+        Html.Styled.Attributes.checked isChecked 
+      ] []
     , text value
     ]
 
-
-algorithmPicker : Algorithm -> Html Msg
-algorithmPicker algorithm  = styled Html.Styled.div [  
+settingsPicker : Algorithm -> Int -> Html Msg
+settingsPicker algorithm count = styled Html.Styled.div [  
     Css.marginBottom (Css.px 32),
-    Css.width (Css.pct 100),
+    Css.width (Css.pct 70),
     Css.displayFlex,
     Css.alignItems (Css.center),
     Css.justifyContent (Css.center)
     ] [] (
         styled Html.Styled.p 
-        [ fontWeight bold, 
+        [ 
+          fontWeight bold, 
+          Css.paddingRight (Css.px 16) 
+        ] [] [ text "Count:" ]
+    :: styled Html.Styled.input 
+        [ 
+          Css.margin4 (Css.px 6) (Css.px 48) (Css.px 6) (Css.px 6),
+          Css.width (Css.px 48)
+        ]
+        [ 
+          type_ "number", 
+          name "count",
+          value (String.fromInt count),
+          onInput (\v -> ChangeCount <| Maybe.withDefault defaultCount <| String.toInt <| v), 
+          Html.Styled.Attributes.min "1",
+          Html.Styled.Attributes.max "42"
+        ] []
+    :: styled Html.Styled.p 
+        [ 
+          fontWeight bold, 
           Css.paddingRight (Css.px 16) 
         ]  [] [ text "Algorithm:" ]
     :: (List.map 
