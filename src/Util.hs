@@ -8,6 +8,7 @@ import Text.Read (readMaybe)
 import Data.Maybe (fromMaybe)
 import Debug.Trace (trace)
 import System.Environment (lookupEnv)
+import System.Random (randomR, RandomGen, Random)
 
 
 debug :: Show a => a -> String -> a
@@ -48,3 +49,17 @@ splitAtEvery ith ys
     | zs' == [] = [zs]
     | otherwise = zs : splitAtEvery ith zs'
     where (zs, zs') = splitAt ith ys
+
+frequency :: (Floating w, Ord w, Random w, RandomGen g) => [(w, a)] -> g -> (a, g)
+frequency xs g0 = (pick r xs, g1)
+    where (r, g1) = randomR (0, tot) g0
+          tot = sum (map fst xs)
+          pick n ((w, a) : xs) 
+             | n <= w = a
+             | otherwise = pick (n - w) xs
+          pick _ [] = error "invalid frequency state"
+
+randomElem :: RandomGen g => [a] -> g -> (a, g)
+randomElem xs g = (xs !! pos, g') where
+  n = length xs
+  (pos, g') = randomR (0, (n - 1)) g

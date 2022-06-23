@@ -55,6 +55,13 @@ The colors are represented as hex color codes and are returned as a list of all 
 }
 ```
 
+##### Error response
+```
+{
+    msg: "Error description"
+}
+```
+
 ### Haskell webserver
 
 Webserver application is written with the usage of Scotty framework that allows to easily design 

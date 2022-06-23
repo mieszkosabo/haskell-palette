@@ -3,7 +3,6 @@
 
 module Server (server) where
 
-import qualified Data.Text.Lazy as TL
 import qualified Model as M
 import qualified Color as C
 import qualified Util as U
@@ -25,13 +24,18 @@ algorithmImplementation :: M.ImageRequest -> Either M.ErrorMessage M.Algorithm
 algorithmImplementation request = case M.algorithm request of
   "histogram" -> Right I.histogram
   "median_cut" -> Right I.medianCut
-  "k_means" -> Right I.kmeans
+  "k_means" -> Right $ I.kmeans I.selectCentersNoRandom
+  "k_means_pp" -> Right $ I.kmeans I.selectCentersByDistr
   _ -> Left "Algorithm not implemented"
+
+validateCount :: Int -> Either M.ErrorMessage Int
+validateCount x | x < 1 = Left "Too small clusters number"
+                | otherwise = Right x
 
 generatePalette :: M.ImageRequest -> Either M.ErrorMessage M.ColorsResponse
 generatePalette request = do 
   algorithm <- algorithmImplementation request
-  let count = M.count request
+  count <- validateCount $ M.count request
   let img = M.image request
   resizedImg <- I.decodeImage img >>= I.resize
   computedImg <- R.computeP resizedImg :: Either M.ErrorMessage M.ComputedImage
@@ -55,4 +59,4 @@ server = do
       request <- Scot.jsonData :: Scot.ActionM M.ImageRequest
       case generatePalette request of
         Right response -> Scot.json response
-        Left msg -> Scot.text $ TL.pack msg
+        Left msg -> Scot.json $ M.ErrorResponse msg

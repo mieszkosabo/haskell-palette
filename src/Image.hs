@@ -14,6 +14,7 @@ import qualified Color as C
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Map as Map
 import qualified Data.Ord as O
+import qualified System.Random as Rnd
 
 import Data.Array.Repa ((:.), (:.)(..), Z(..))
 import Data.Array.Repa.Index (ix2)
@@ -22,41 +23,74 @@ import Data.Function (on)
 import GHC.Word (Word8)
 
 targetImageSize = 256
+
 histogramGridSize = 3
+
+seed = 42
 
 imagePoints :: M.ComputedImage -> [M.RGB]
 imagePoints = V.toList . R.toUnboxed
 
+squaredEuclideanDist :: M.Vect -> M.Vect -> Double
+squaredEuclideanDist xs ys = sum $ zipWith (\x y -> (x - y) ^ 2) xs ys
+
 euclideanDist :: M.Vect -> M.Vect -> Double
-euclideanDist xs ys = sqrt . sum $ zipWith (\x y-> (x - y) ^ 2) xs ys
+euclideanDist xs ys = sqrt $ squaredEuclideanDist xs ys
 
 centroid :: [M.PointHolder] -> [Double]
-centroid points = L.map (flip (/) l . sum) $ L.transpose (L.map M.normed points)
-    where l = fromIntegral $ L.length points
+centroid points = map (flip (/) l . sum) $ L.transpose (map M.normed points)
+  where 
+    l = fromIntegral $ L.length points
 
 closest :: [M.Vect] -> M.Vect -> M.Vect
 closest points point = L.minimumBy (O.comparing $ euclideanDist point) points
 
+assignToCentroids :: [M.Vect] -> [M.PointHolder] -> [[(M.Vect, M.PointHolder)]]
+assignToCentroids centroids points = L.groupBy ((==) `on` fst) 
+                                   $ L.sort [(closest centroids (M.normed p), p) | p <- points]
+
 reclusterForCentroids :: [M.Vect] -> [M.PointHolder] -> [[M.PointHolder]]
-reclusterForCentroids centroids points = L.map (L.map snd) $ L.groupBy ((==) `on` fst) reclustered
-    where reclustered = L.sort [(closest centroids (M.normed p), p) | p <- points]
+reclusterForCentroids centroids points = map (map snd) 
+                                       $ assignToCentroids centroids points
+
+squaredDistancesToCentroids :: [M.Vect] -> [M.PointHolder] -> [(Double, M.PointHolder)]
+squaredDistancesToCentroids centroids points = L.concatMap (map dist)
+                                             $ assignToCentroids centroids points
+  where 
+    dist :: (M.Vect, M.PointHolder) -> (Double, M.PointHolder)
+    dist (v, p) = (squaredEuclideanDist v (M.normed p), p)
 
 recluster :: [[M.PointHolder]] -> [[M.PointHolder]]
 recluster clusters = reclusterForCentroids centroids $ L.concat clusters
-    where centroids = L.map centroid clusters
+  where 
+    centroids = map centroid clusters
 
-kmeansUntilFixed :: [[M.PointHolder]] -> [[M.PointHolder]]
-kmeansUntilFixed clusters
+kmeansClustered :: [[M.PointHolder]] -> [[M.PointHolder]]
+kmeansClustered clusters
     | clusters == clusters' = clusters
-    | otherwise = kmeansUntilFixed clusters'
-    where clusters' = recluster clusters
+    | otherwise = kmeansClustered clusters'
+    where 
+      clusters' = recluster clusters
 
-kmeansForK :: Int -> [M.PointHolder] -> [[M.PointHolder]]
-kmeansForK k points = kmeansUntilFixed $ U.splitAtEvery lth points
-    where lth = (length points + k - 1) `div` k
+selectCentersByDistr :: M.KMeansInit
+selectCentersByDistr k points = go [M.normed rndPoint] k g0
+  where
+    (rndPoint, g0) = U.randomElem points $ Rnd.mkStdGen seed
 
-kmeans :: M.Algorithm
-kmeans paletteSize = extractColors . cluster . (L.map wrapToHolder)
+    go :: Rnd.RandomGen g => [M.Vect] -> Int -> g -> [[M.PointHolder]]
+    go centroids 1 _ = reclusterForCentroids centroids points
+    go centroids k g = go (M.normed centroid : centroids) (k - 1) g'
+      where 
+        distribution = squaredDistancesToCentroids centroids points
+        (centroid, g') = U.frequency distribution g
+
+selectCentersNoRandom :: M.KMeansInit
+selectCentersNoRandom k points = U.splitAtEvery lth points
+  where 
+    lth = (length points + k - 1) `div` k
+
+kmeans :: M.KMeansInit -> M.Algorithm
+kmeans kinit paletteSize = extractColors . cluster . (map wrapToHolder)
   where
     norm :: M.RGB -> [Double]
     norm (x, y, z) = [x `divf` 255, y `divf` 255, z `divf` 255]
@@ -65,10 +99,10 @@ kmeans paletteSize = extractColors . cluster . (L.map wrapToHolder)
     wrapToHolder c = M.PointHolder { M.normed = norm c, M.color = c }
 
     cluster :: [M.PointHolder] -> [[M.PointHolder]]
-    cluster = kmeansForK paletteSize
+    cluster points = kmeansClustered $ kinit paletteSize points
 
     extractColors :: [[M.PointHolder]] -> [M.RGB]
-    extractColors = L.map (C.avarageColor . L.map M.color)
+    extractColors = map (C.avarageColor . map M.color)
 
 medianCut :: M.Algorithm
 medianCut paletteSize points = map (C.avarageColor . snd) $ go (paletteSize - 1) [(evalRanges points, points)] 

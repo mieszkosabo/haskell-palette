@@ -52,7 +52,8 @@ library
         either ^>= 5.0.2,
         containers ^>= 0.6.5.1,
         mtl ^>= 2.2.2,
-        vector ^>= 0.12.3.1
+        vector ^>= 0.12.3.1,
+        random ^>= 1.2.1.1
     hs-source-dirs:   src
 
 executable haskell-palette

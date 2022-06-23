@@ -19,7 +19,13 @@ newtype ColorsResponse = ColorsResponse {
   colors :: [Color]
 } deriving (Show, Generic)
 
+newtype ErrorResponse = ErrorResponse { 
+  msg :: String
+} deriving (Show, Generic)
+
 instance ToJSON ColorsResponse
+
+instance ToJSON ErrorResponse
 
 instance FromJSON ImageRequest
 
@@ -38,6 +44,8 @@ type Algorithm = Int -> [RGB] -> [RGB]
 type ChannelRange = (Int, Int)
 
 type Vect = [Double]
+
+type KMeansInit = Int -> [PointHolder] -> [[PointHolder]]
 
 data PointHolder = PointHolder { 
     normed :: Vect, 
