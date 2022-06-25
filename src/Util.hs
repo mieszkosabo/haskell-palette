@@ -1,7 +1,12 @@
+{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE PatternSynonyms #-}
+
 module Util where
 
 import qualified Data.ByteString as B
 import qualified Data.Text as T
+import qualified Data.Vector.Unboxed as VU
+import qualified Data.Vector as V
 
 import Data.Text.Encoding (encodeUtf8)
 import Text.Read (readMaybe)
@@ -11,6 +16,16 @@ import System.Environment (lookupEnv)
 import System.Random (randomR, RandomGen, Random)
 import Control.Parallel.Strategies (using, rseq, parList)
 
+
+pattern Empty :: VU.Unbox a => VU.Vector a
+pattern Empty <- (VU.null -> True) where Empty = VU.empty 
+
+uncons :: VU.Unbox a => VU.Vector a -> Maybe (a, VU.Vector a)
+uncons Empty = Nothing
+uncons v = Just (VU.unsafeHead v, VU.unsafeTail v)
+
+pattern (:<|) :: VU.Unbox a => a -> VU.Vector a -> VU.Vector a
+pattern x :<| xs <- (uncons -> Just (x, xs))
 
 debug :: Show a => a -> String -> a
 debug o name = trace (name ++ " = " ++ show o) o
@@ -45,25 +60,36 @@ tupleAtPos3 pos (a, b, c) = case pos of
     2 -> c
     _ -> error "Out of bounds"
 
-splitAtEvery :: (Eq a) => Int -> [a] -> [[a]]
+splitAtEvery :: (Eq a, VU.Unbox a) => Int -> VU.Vector a -> [VU.Vector a]
 splitAtEvery ith ys
-    | zs' == [] = [zs]
+    | zs' == VU.empty = [zs]
     | otherwise = zs : splitAtEvery ith zs'
-    where (zs, zs') = splitAt ith ys
+    where (zs, zs') = VU.splitAt ith ys
 
-frequency :: (Floating w, Ord w, Random w, RandomGen g) => [(w, a)] -> g -> (a, g)
+frequency :: (Floating w, Ord w, Random w, VU.Unbox w, VU.Unbox a, RandomGen g) => VU.Vector (w, a) -> g -> (a, g)
 frequency xs g0 = (pick r xs, g1)
     where (r, g1) = randomR (0, tot) g0
-          tot = sum (map fst xs)
-          pick n ((w, a) : xs) 
-             | n <= w = a
-             | otherwise = pick (n - w) xs
-          pick _ [] = error "invalid frequency state"
+          tot = VU.sum (VU.map fst xs)
+          pick n ((w, a) :<| xs) 
+            | n <= w = a
+            | otherwise = pick (n - w) xs
+          pick _ Empty = error "invalid frequency state"
 
-randomElem :: RandomGen g => [a] -> g -> (a, g)
-randomElem xs g = (xs !! pos, g') where
-  n = length xs
+randomElem :: (RandomGen g, VU.Unbox a)  => VU.Vector a -> g -> (a, g)
+randomElem xs g = (xs VU.! pos, g') where
+  n = VU.length xs
   (pos, g') = randomR (0, (n - 1)) g
 
 parMap :: (a -> b) -> [a] -> [b]
 parMap f xs = map f xs `using` parList rseq
+
+{-# INLINE groupByVU #-}
+groupByVU :: (VU.Unbox a) => (a -> a -> Bool) -> VU.Vector a -> [VU.Vector a]
+groupByVU _ v | VU.null v = []
+groupByVU f v =
+  let h = VU.unsafeHead v
+      tl = VU.unsafeTail v
+  in case VU.findIndex (not . f h) tl of
+      Nothing -> [v]
+      Just n -> VU.unsafeTake (n + 1) v : groupByVU f (VU.unsafeDrop (n + 1) v)
+

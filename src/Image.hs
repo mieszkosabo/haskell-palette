@@ -12,10 +12,12 @@ import qualified Data.ByteString as B
 import qualified Util as U
 import qualified Data.List as L
 import qualified Color as C
-import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as VU
 import qualified Data.Map as Map
 import qualified Data.Ord as O
 import qualified System.Random as Rnd
+import qualified Data.Vector.Algorithms.Merge as AM
 
 import Data.Array.Repa ((:.), (:.)(..), Z(..))
 import Data.Array.Repa.Index (ix2)
@@ -29,44 +31,47 @@ histogramGridSize = 3
 
 seed = 42
 
-imagePoints :: M.ComputedImage -> [M.RGB]
-imagePoints = V.toList . R.toUnboxed
+squaredEuclideanDist :: M.RGBVect -> M.RGBVect -> Double
+squaredEuclideanDist (x1, x2, x3) (y1, y2, y3) = (x1 - y1)^2 + (x2 - y2)^2 + (x3 - y3)^2
 
-squaredEuclideanDist :: M.Vect -> M.Vect -> Double
-squaredEuclideanDist xs ys = sum $ zipWith (\x y -> (x - y) ^ 2) xs ys
-
-euclideanDist :: M.Vect -> M.Vect -> Double
+euclideanDist :: M.RGBVect -> M.RGBVect -> Double
 euclideanDist xs ys = sqrt $ squaredEuclideanDist xs ys
 
-centroid :: [M.PointHolder] -> [Double]
-centroid points = U.parMap (flip (/) l . sum) $ L.transpose (map M.normed points)
+centroid :: M.Points -> M.RGBVect
+centroid points = (center 0, center 1, center 2)
   where 
-    l = fromIntegral $ L.length points
+    l = fromIntegral $ VU.length points
+    n = VU.map M.normed points
+    center pos = VU.sum (VU.map (U.tupleAtPos3 pos) n) / l
 
-closest :: [M.Vect] -> M.Vect -> M.Vect
+closest :: [M.RGBVect] -> M.RGBVect -> M.RGBVect
 closest points point = L.minimumBy (O.comparing $ euclideanDist point) points
 
-assignToCentroids :: [M.Vect] -> [M.PointHolder] -> [[(M.Vect, M.PointHolder)]]
-assignToCentroids centroids points = L.groupBy ((==) `on` fst) 
-                                   $ L.sort [(closest centroids (M.normed p), p) | p <- points]
+assignToCentroids :: [M.RGBVect] -> M.Points -> [VU.Vector (M.RGBVect, M.PointHolder)]
+assignToCentroids centroids points = U.groupByVU ((==) `on` fst) 
+                                   $ VU.modify AM.sort
+                                   $ VU.map withCenter points
+  where
+    withCenter p = (closest centroids (M.normed p), p)
 
-reclusterForCentroids :: [M.Vect] -> [M.PointHolder] -> [[M.PointHolder]]
-reclusterForCentroids centroids points = U.parMap (map snd) 
+reclusterForCentroids :: [M.RGBVect] -> M.Points -> [M.Points]
+reclusterForCentroids centroids points = U.parMap (VU.map snd) 
                                        $ assignToCentroids centroids points
 
-squaredDistancesToCentroids :: [M.Vect] -> [M.PointHolder] -> [(Double, M.PointHolder)]
-squaredDistancesToCentroids centroids points = L.concatMap (map dist)
+squaredDistancesToCentroids :: [M.RGBVect] -> M.Points -> VU.Vector (Double, M.PointHolder)
+squaredDistancesToCentroids centroids points = VU.concat 
+                                             $ L.map (VU.map dist)
                                              $ assignToCentroids centroids points
   where 
-    dist :: (M.Vect, M.PointHolder) -> (Double, M.PointHolder)
+    dist :: (M.RGBVect, M.PointHolder) -> (Double, M.PointHolder)
     dist (v, p) = (squaredEuclideanDist v (M.normed p), p)
 
-recluster :: [[M.PointHolder]] -> [[M.PointHolder]]
-recluster clusters = reclusterForCentroids centroids $ L.concat clusters
+recluster :: [M.Points] -> [M.Points]
+recluster clusters = reclusterForCentroids centroids $ VU.concat clusters
   where 
     centroids = U.parMap centroid clusters
 
-kmeansClustered :: [[M.PointHolder]] -> [[M.PointHolder]]
+kmeansClustered :: [M.Points] -> [M.Points]
 kmeansClustered clusters
     | clusters == clusters' = clusters
     | otherwise = kmeansClustered clusters'
@@ -78,7 +83,7 @@ selectCentersByDistr k points = go [M.normed rndPoint] k g0
   where
     (rndPoint, g0) = U.randomElem points $ Rnd.mkStdGen seed
 
-    go :: Rnd.RandomGen g => [M.Vect] -> Int -> g -> [[M.PointHolder]]
+    go :: Rnd.RandomGen g => [M.RGBVect] -> Int -> g -> [M.Points]
     go centroids 1 _ = reclusterForCentroids centroids points
     go centroids k g = go (M.normed centroid : centroids) (k - 1) g'
       where 
@@ -88,22 +93,22 @@ selectCentersByDistr k points = go [M.normed rndPoint] k g0
 selectCentersNoRandom :: M.KMeansInit
 selectCentersNoRandom k points = U.splitAtEvery lth points
   where 
-    lth = (length points + k - 1) `div` k
+    lth = (VU.length points + k - 1) `div` k
 
 kmeans :: M.KMeansInit -> M.Algorithm
-kmeans kinit paletteSize = extractColors . cluster . (map wrapToHolder)
+kmeans kinit paletteSize = extractColors . cluster . (VU.map wrapToHolder)
   where
-    norm :: M.RGB -> [Double]
-    norm (x, y, z) = [x `divf` 255, y `divf` 255, z `divf` 255]
+    norm :: M.RGB -> M.RGBVect
+    norm = U.mapTuple3 (flip divf 255)
 
     wrapToHolder :: M.RGB -> M.PointHolder
     wrapToHolder c = M.PointHolder { M.normed = norm c, M.color = c }
 
-    cluster :: [M.PointHolder] -> [[M.PointHolder]]
+    cluster :: M.Points -> [M.Points]
     cluster points = kmeansClustered $ kinit paletteSize points
 
-    extractColors :: [[M.PointHolder]] -> [M.RGB]
-    extractColors = map (C.avarageColor . map M.color)
+    extractColors :: [M.Points] -> [M.RGB]
+    extractColors = L.map (C.avarageColor' . (VU.map M.color))
 
 kmeansStd :: M.Algorithm
 kmeansStd = kmeans selectCentersNoRandom
@@ -112,8 +117,10 @@ kmeansPP :: M.Algorithm
 kmeansPP = kmeans selectCentersByDistr
 
 medianCut :: M.Algorithm
-medianCut paletteSize points = map (C.avarageColor . snd) $ go (paletteSize - 1) [(evalRanges points, points)] 
+medianCut paletteSize points' = map (C.avarageColor . snd) $ go (paletteSize - 1) [(evalRanges points, points)] 
   where
+    points = VU.toList points'
+    
     go :: Int -> [([M.ChannelRange], [M.RGB])] -> [([M.ChannelRange], [M.RGB])]
     go 0 s = s
     go n s = go (n - 1) (oldBuckets ++ newBuckets)
@@ -154,8 +161,9 @@ medianCut paletteSize points = map (C.avarageColor . snd) $ go (paletteSize - 1)
       where (lft, (_:rgt)) = splitAt idx xs
 
 histogram :: M.Algorithm
-histogram paletteSize points = topColors
+histogram paletteSize points' = topColors
   where
+    points = VU.toList points'
     buckets = createBuckets points histogramGridSize
     avgColorsAndCounts = map (\bucket -> (C.avarageColor bucket, length bucket)) buckets
     sorted = L.sortBy (\(_, count1) (_, count2) -> compare count2 count1) avgColorsAndCounts
@@ -185,7 +193,8 @@ preprocessImage rgba = do
   let collapsed = CR.collapseColorChannel rgba
   let collapsedImg = R.map (U.mapTuple3 (fromIntegral . toInteger :: Word8 -> Int)) collapsed
   resizedImg <- resize collapsedImg
-  R.computeP resizedImg
+  computedImg <- R.computeP resizedImg
+  return $ R.toUnboxed computedImg
 
 resize :: M.RawImage -> Either String M.RawImage
 resize = resizeNNSafeToScale targetImageSize
@@ -196,7 +205,7 @@ resizeNNSafeToScale nd img = do
   let ratio = nd `divf` (max h w) 
   if (ratio < 1.0) 
     then do
-      let scale = \d -> floor (ratio * fromIntegral d)
+      let scale d = floor (ratio * fromIntegral d)
       resizeNNSafe (scale h) (scale w) img
     else 
       return img

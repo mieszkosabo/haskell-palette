@@ -2,6 +2,7 @@ module Color where
 
 import qualified Util as U
 import qualified Model as M
+import qualified Data.Vector.Unboxed as VU
 
 import Numeric
 
@@ -13,6 +14,13 @@ avarageColor colors = U.listToTuple3 squared
     numOfColors = length colors
     squared = map (\x -> round $ sqrt (fromIntegral x / fromIntegral numOfColors)) (U.tupleToList3 multiplied)
     multiplied = foldr (\(r, g, b) (accR, accG, accB) -> (accR + r * r, accG + g * g, accB + b * b)) (0, 0, 0) colors
+
+avarageColor' :: VU.Vector M.RGB -> M.RGB
+avarageColor' colors = U.listToTuple3 squared
+  where
+    numOfColors = VU.length colors
+    multiplied = VU.foldr (\(r, g, b) (accR, accG, accB) -> (accR + r * r, accG + g * g, accB + b * b)) (0, 0, 0) colors
+    squared = map (\x -> round $ sqrt (fromIntegral x / fromIntegral numOfColors)) (U.tupleToList3 multiplied)
 
 rgbToHex :: M.RGB -> String
 rgbToHex (r, g, b) = '#' : concatMap convertToPaddedHex [r, g, b]

@@ -37,8 +37,7 @@ validateCount x | x < 1 = Left "Too small clusters number"
 
 runAlgorithm :: M.Algorithm -> Int -> CR.Img CR.RGBA -> Either M.ErrorMessage [M.Color]
 runAlgorithm algorithm k dimg = do
-  preprocessedImg <- I.preprocessImage dimg
-  let points = I.imagePoints preprocessedImg
+  points <- I.preprocessImage dimg
   let colors = L.sort $ algorithm k points
   return $ L.map C.rgbToHex colors
 
