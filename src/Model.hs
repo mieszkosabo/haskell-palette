@@ -25,11 +25,11 @@ newtype ErrorResponse = ErrorResponse {
   msg :: String
 } deriving (Show)
 
+deriveJSON defaultOptions ''ImageRequest
+
 deriveJSON defaultOptions ''ColorsResponse
 
 deriveJSON defaultOptions ''ErrorResponse
-
-deriveJSON defaultOptions ''ImageRequest
 
 type Palette = [Color]
 
