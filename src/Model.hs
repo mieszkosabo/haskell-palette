@@ -1,35 +1,35 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Model where
 
 import qualified Data.Array.Repa as R
-import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson.TH (deriveToJSON, deriveFromJSON, defaultOptions)
 import GHC.Generics
 import GHC.Word (Word8)
 import Data.Function (on)
 import Data.Ord (comparing)
 
+type Color = String
+
 data ImageRequest = ImageRequest { 
   algorithm :: String, 
   image :: String,
   count :: Int
-} deriving (Show, Generic)
+} deriving (Show)
 
 newtype ColorsResponse = ColorsResponse { 
   colors :: [Color]
-} deriving (Show, Generic)
+} deriving (Show)
 
 newtype ErrorResponse = ErrorResponse { 
   msg :: String
-} deriving (Show, Generic)
+} deriving (Show)
 
-instance ToJSON ColorsResponse
+deriveFromJSON defaultOptions ''ImageRequest
 
-instance ToJSON ErrorResponse
+deriveToJSON defaultOptions ''ColorsResponse
 
-instance FromJSON ImageRequest
-
-type Color = String
+deriveToJSON defaultOptions ''ErrorResponse
 
 type Palette = [Color]
 
@@ -62,8 +62,8 @@ instance Ord PointHolder where
 -- of pixels of given RGB color
 type Histogram = R.Array R.D R.DIM3 Word8
 
--- HEIGHTxWIDTHx3 where matrix values are 
--- level values from 0..255
+-- HEIGHTxWIDTH where matrix values are
+-- (Int, Int, Int) with level values from 0..255
 type RawImage = R.Array R.D R.DIM2 RGB
 
 type ComputedImage = R.Array R.U R.DIM2 RGB
