@@ -40,7 +40,8 @@ library
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
     build-depends:
-        repa >= 3.4.1.5,
+        parallel ^>= 3.2.2.0,
+        repa ^>= 3.4.1.5,
         JuicyPixels ^>= 3.3.7,
         JuicyPixels-repa ^>= 0.7.1.0,
         aeson ^>= 2.0.3.0,
