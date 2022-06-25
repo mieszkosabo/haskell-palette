@@ -3,7 +3,7 @@
 module Model where
 
 import qualified Data.Array.Repa as R
-import Data.Aeson.TH (deriveJSON, defaultOptions)
+import Data.Aeson.TH (deriveToJSON, deriveFromJSON, defaultOptions)
 import GHC.Generics
 import GHC.Word (Word8)
 import Data.Function (on)
@@ -25,11 +25,11 @@ newtype ErrorResponse = ErrorResponse {
   msg :: String
 } deriving (Show)
 
-deriveJSON defaultOptions ''ImageRequest
+deriveFromJSON defaultOptions ''ImageRequest
 
-deriveJSON defaultOptions ''ColorsResponse
+deriveToJSON defaultOptions ''ColorsResponse
 
-deriveJSON defaultOptions ''ErrorResponse
+deriveToJSON defaultOptions ''ErrorResponse
 
 type Palette = [Color]
 
