@@ -9,6 +9,7 @@ import Data.Maybe (fromMaybe)
 import Debug.Trace (trace)
 import System.Environment (lookupEnv)
 import System.Random (randomR, RandomGen, Random)
+import Control.Parallel.Strategies (using, rseq, parList)
 
 
 debug :: Show a => a -> String -> a
@@ -63,3 +64,6 @@ randomElem :: RandomGen g => [a] -> g -> (a, g)
 randomElem xs g = (xs !! pos, g') where
   n = length xs
   (pos, g') = randomR (0, (n - 1)) g
+
+parMap :: (a -> b) -> [a] -> [b]
+parMap f xs = map f xs `using` parList rseq

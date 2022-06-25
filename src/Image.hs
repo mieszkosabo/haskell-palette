@@ -8,6 +8,7 @@ import qualified Data.Array.Repa as R
 import qualified Data.Array.Repa.Unsafe as RU
 import qualified Model as M
 import qualified Data.ByteString.Base64 as B64
+import qualified Data.ByteString as B
 import qualified Util as U
 import qualified Data.List as L
 import qualified Color as C
@@ -38,7 +39,7 @@ euclideanDist :: M.Vect -> M.Vect -> Double
 euclideanDist xs ys = sqrt $ squaredEuclideanDist xs ys
 
 centroid :: [M.PointHolder] -> [Double]
-centroid points = map (flip (/) l . sum) $ L.transpose (map M.normed points)
+centroid points = U.parMap (flip (/) l . sum) $ L.transpose (map M.normed points)
   where 
     l = fromIntegral $ L.length points
 
@@ -50,7 +51,7 @@ assignToCentroids centroids points = L.groupBy ((==) `on` fst)
                                    $ L.sort [(closest centroids (M.normed p), p) | p <- points]
 
 reclusterForCentroids :: [M.Vect] -> [M.PointHolder] -> [[M.PointHolder]]
-reclusterForCentroids centroids points = map (map snd) 
+reclusterForCentroids centroids points = U.parMap (map snd) 
                                        $ assignToCentroids centroids points
 
 squaredDistancesToCentroids :: [M.Vect] -> [M.PointHolder] -> [(Double, M.PointHolder)]
@@ -63,7 +64,7 @@ squaredDistancesToCentroids centroids points = L.concatMap (map dist)
 recluster :: [[M.PointHolder]] -> [[M.PointHolder]]
 recluster clusters = reclusterForCentroids centroids $ L.concat clusters
   where 
-    centroids = map centroid clusters
+    centroids = U.parMap centroid clusters
 
 kmeansClustered :: [[M.PointHolder]] -> [[M.PointHolder]]
 kmeansClustered clusters
@@ -103,6 +104,12 @@ kmeans kinit paletteSize = extractColors . cluster . (map wrapToHolder)
 
     extractColors :: [[M.PointHolder]] -> [M.RGB]
     extractColors = map (C.avarageColor . map M.color)
+
+kmeansStd :: M.Algorithm
+kmeansStd = kmeans selectCentersNoRandom
+
+kmeansPP :: M.Algorithm
+kmeansPP = kmeans selectCentersByDistr
 
 medianCut :: M.Algorithm
 medianCut paletteSize points = map (C.avarageColor . snd) $ go (paletteSize - 1) [(evalRanges points, points)] 
@@ -168,13 +175,17 @@ createBuckets points gridSize = Map.elems $ execState createBuckets' Map.empty
     valueToBucketIdx val = floor (fromIntegral val / (255 / fromIntegral gridSize))
     turn3DIndexTo1DIndex (x, y, z) = x + (gridSize * y) + (gridSize * gridSize * z)
 
-decodeImage :: String -> Either String M.RawImage
+decodeImage :: String -> Either M.ErrorMessage (CR.Img CR.RGBA)
 decodeImage imgBase64 = do
   let bimg = U.strToBStr imgBase64
-  dimg <- B64.decode bimg
-  rgba <- CR.decodeImageRGBA dimg
+  B64.decode bimg >>= CR.decodeImageRGBA
+
+preprocessImage :: CR.Img CR.RGBA -> Either M.ErrorMessage M.ComputedImage
+preprocessImage rgba = do
   let collapsed = CR.collapseColorChannel rgba
-  return $ R.map (U.mapTuple3 (fromIntegral . toInteger :: Word8 -> Int)) collapsed 
+  let collapsedImg = R.map (U.mapTuple3 (fromIntegral . toInteger :: Word8 -> Int)) collapsed
+  resizedImg <- resize collapsedImg
+  R.computeP resizedImg
 
 resize :: M.RawImage -> Either String M.RawImage
 resize = resizeNNSafeToScale targetImageSize
