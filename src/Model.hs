@@ -1,35 +1,35 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Model where
 
 import qualified Data.Array.Repa as R
-import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson.TH (deriveJSON, defaultOptions)
 import GHC.Generics
 import GHC.Word (Word8)
 import Data.Function (on)
 import Data.Ord (comparing)
 
+type Color = String
+
 data ImageRequest = ImageRequest { 
   algorithm :: String, 
   image :: String,
   count :: Int
-} deriving (Show, Generic)
+} deriving (Show)
 
 newtype ColorsResponse = ColorsResponse { 
   colors :: [Color]
-} deriving (Show, Generic)
+} deriving (Show)
 
 newtype ErrorResponse = ErrorResponse { 
   msg :: String
-} deriving (Show, Generic)
+} deriving (Show)
 
-instance ToJSON ColorsResponse
+deriveJSON defaultOptions ''ColorsResponse
 
-instance ToJSON ErrorResponse
+deriveJSON defaultOptions ''ErrorResponse
 
-instance FromJSON ImageRequest
-
-type Color = String
+deriveJSON defaultOptions ''ImageRequest
 
 type Palette = [Color]
 
