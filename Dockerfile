@@ -1,4 +1,4 @@
-FROM docker.io/library/haskell:9 AS build-haskell
+FROM docker.io/library/haskell@sha256:51cbc46421f75088ea9ff2ab367d37c99ded755a0472da80b898bdf1e738813a AS build-haskell
 
 RUN wget -nv -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 RUN apt-get update && \
