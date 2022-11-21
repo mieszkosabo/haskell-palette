@@ -2,7 +2,7 @@
 
 ## Application DEMO
 
-Application is available at [https://haskell-palette.herokuapp.com/](https://haskell-palette.herokuapp.com/).
+Application is available at [https://haskell-palette.ml/](https://haskell-palette.ml/).
 After every successful commit to the `main` branch the newest version of application is automatically updated
 on the server with the help of prepared CI/CD scripts and configurations.
 
